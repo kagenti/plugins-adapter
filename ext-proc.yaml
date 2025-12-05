@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: plugins-adapter
-          image: localhost/plugins-adapter:0.1.0
+          image: $IMAGE
           # command: ["bash", "-c","--"]
           # args: ["while true; do sleep 3600; done"]
 #          imagePullPolicy: IfNotPresent

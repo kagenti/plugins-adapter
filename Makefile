@@ -1,4 +1,6 @@
 .PHONY: build load all deploy exec log
+.IGNORE: delete
+
 
 SHELL := /bin/bash
 .SHELLFLAGS := -eu -o pipefail -c
@@ -7,7 +9,7 @@ CONTAINER_RUNTIME ?= $(shell command -v docker >/dev/null 2>&1 && echo docker ||
 
 
 # Base image name (without any prefix)
-IMAGE_BASE ?= plugins-adaptor
+IMAGE_BASE ?= plugins-adapter
 #IMAGE_TAG ?= latest
 IMAGE_TAG ?= 0.1.0
 
@@ -38,14 +40,27 @@ log:
 exec:
 	kubectl exec -ti ${podname} -n istio-system -- bash
 
+delete: IMAGE=$(IMAGE_PUSH)
+delete:
+	envsubst < ext-proc.yaml | kubectl delete -f -
+
+deploy: IMAGE=$(IMAGE_PUSH)
 deploy:
-	kubectl delete -f ext-proc.yaml
-	kubectl apply -f ext-proc.yaml
+	envsubst < ext-proc.yaml | kubectl apply -f -
 	kubectl apply -f filter.yaml
 
-push_image_quay: build
-	$(CONTAINER_RUNTIME) tag $(IMAGE_LOCAL)  quay.io/julian_stephen/$(IMAGE_LOCAL) 
-	$(CONTAINER_RUNTIME) push quay.io/julian_stephen/$(IMAGE_LOCAL) 
 
-all: build load deploy
+redeploy: delete deploy
+
+push_image_quay: build
+	$(CONTAINER_RUNTIME) tag $(IMAGE_LOCAL)  quay.io/julian_stephen/$(IMAGE_PUSH) 
+	$(CONTAINER_RUNTIME) push quay.io/julian_stephen/$(IMAGE_PUSH) 
+
+all: build load redeploy
 	@echo "All done!"
+
+deploy_quay: IMAGE=quay.io/julian_stephen/$(IMAGE_PUSH)
+deploy_quay: 
+	kind load docker-image $(IMAGE) --name mcp-gateway
+	envsubst < ext-proc.yaml | kubectl apply -f -
+
