@@ -4,7 +4,11 @@ An Envoy ext-proc to configure and invoke guardrails for MCP Gateway.
 
 * Expects configured kubectl in cli
 * Use pre-built image to deploy 
-    `make deploy_quay`
+    ```
+    git clone https://github.com/kagenti/plugins-adapter.git
+    cd plugins-adapter
+    make deploy_quay
+    ```
 
 ## Configure Plugins
 
