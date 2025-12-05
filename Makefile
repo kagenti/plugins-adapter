@@ -1,12 +1,35 @@
 .PHONY: build load all deploy exec log
 
+SHELL := /bin/bash
+.SHELLFLAGS := -eu -o pipefail -c
+
+CONTAINER_RUNTIME ?= $(shell command -v docker >/dev/null 2>&1 && echo docker || echo podman)
+
+
+# Base image name (without any prefix)
+IMAGE_BASE ?= plugins-adaptor
+#IMAGE_TAG ?= latest
+IMAGE_TAG ?= 0.1.0
+
+# Handle runtime-specific image naming
+ifeq ($(CONTAINER_RUNTIME),podman)
+  # Podman adds localhost/ prefix for local builds
+  IMAGE_LOCAL := localhost/$(IMAGE_BASE):$(IMAGE_TAG)
+  IMAGE_LOCAL_DEV := localhost/$(IMAGE_BASE)-dev:$(IMAGE_TAG)
+  IMAGE_PUSH := $(IMAGE_BASE):$(IMAGE_TAG)
+else
+  # Docker doesn't add prefix
+  IMAGE_LOCAL := $(IMAGE_BASE):$(IMAGE_TAG)
+  IMAGE_LOCAL_DEV := $(IMAGE_BASE)-dev:$(IMAGE_TAG)
+  IMAGE_PUSH := $(IMAGE_BASE):$(IMAGE_TAG)
+endif
+
 # Build the combined broker and router 
 build:
-	docker build -t localhost/plugins-adapter:0.1.0 .
-
+	$(CONTAINER_RUNTIME) build -t $(IMAGE_LOCAL) .
 
 load:
-	kind load docker-image localhost/plugins-adapter:0.1.0 --name mcp-gateway
+	kind load docker-image $(IMAGE_LOCAL) --name mcp-gateway
 
 podname := $(shell kubectl get pods -A |grep my-extproc | grep -v Terminating | awk '{print $$2}')
 log:
@@ -19,6 +42,10 @@ deploy:
 	kubectl delete -f ext-proc.yaml
 	kubectl apply -f ext-proc.yaml
 	kubectl apply -f filter.yaml
+
+push_image_quay: build
+	$(CONTAINER_RUNTIME) tag $(IMAGE_LOCAL)  quay.io/julian_stephen/$(IMAGE_LOCAL) 
+	$(CONTAINER_RUNTIME) push quay.io/julian_stephen/$(IMAGE_LOCAL) 
 
 all: build load deploy
 	@echo "All done!"
