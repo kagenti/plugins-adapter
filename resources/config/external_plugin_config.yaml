@@ -1,0 +1,29 @@
+# plugins/config.yaml - Main plugin configuration file
+plugins:
+  - name: apex-guacf
+    kind: external
+    hooks: ["tool_pre_invoke", "tool_post_invoke"]    
+    mode: enforce
+    mcp:
+      proto: STREAMABLEHTTP
+      url: http://guacf-apex-service:8000/mcp
+#      tls:
+#        certfile: /path/to/client-cert.pem
+#        keyfile: /path/to/client-key.pem
+#        ca_bundle: /path/to/ca-bundle.pem
+#        verify: false
+# Self-contained Search Replace Plugin
+
+# Plugin directories to scan
+plugin_dirs:
+  - "plugins/native"      # Built-in plugins
+  - "plugins/custom"      # Custom organization plugins
+  - "/etc/mcpgateway/plugins"  # System-wide plugins
+
+# Global plugin settings
+plugin_settings:
+  parallel_execution_within_band: true
+  plugin_timeout: 30
+  fail_on_plugin_error: false
+  enable_plugin_api: true
+  plugin_health_check_interval: 60
