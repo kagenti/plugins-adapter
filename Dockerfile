@@ -16,10 +16,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir resources
-COPY src/ ./
+RUN mkdir src
 
+COPY src/ ./src/
 COPY resources ./resources/
 
+WORKDIR /app/src
 # Expose the gRPC port
 EXPOSE 50052
 

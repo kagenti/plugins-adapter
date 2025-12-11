@@ -38,6 +38,10 @@ spec:
               value: "0.0.0.0"
             - name: LOGLEVEL
               value: "DEBUG"
+            - name: PLUGINS_ENABLED
+              value: "true"
+            - name: PLUGIN_CONFIG_FILE
+              value: "./resources/config/config.yaml"
             - name: PLUGIN_MANAGER_CONFIG
               value: "./resources/config/config.yaml"
           ports:
