@@ -20,10 +20,11 @@ RUN mkdir src
 
 COPY src/ ./src/
 COPY resources ./resources/
+COPY plugins ./plugins/
 
-WORKDIR /app/src
+#WORKDIR /app/src
 # Expose the gRPC port
 EXPOSE 50052
 
 # Run the server
-CMD ["python", "server.py"]
+CMD ["python", "src/server.py"]
