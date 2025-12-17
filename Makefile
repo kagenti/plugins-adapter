@@ -33,7 +33,7 @@ build:
 load:
 	kind load docker-image $(IMAGE_LOCAL) --name mcp-gateway
 
-podname := $(shell kubectl get pods -A |grep my-extproc | grep -v Terminating | awk '{print $$2}')
+podname := $(shell kubectl get pods -A |grep ${IMAGE_BASE} | grep -v Terminating | awk '{print $$2}')
 log:
 	kubectl logs ${podname} -n istio-system -f
 

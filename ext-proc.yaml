@@ -30,9 +30,9 @@ spec:
       containers:
         - name: plugins-adapter
           image: plugins-adapter:0.1.0
-          # command: ["bash", "-c","--"]
-          # args: ["while true; do sleep 3600; done"]
-#          imagePullPolicy: IfNotPresent
+          #command: ["bash", "-c","--"]
+          #args: ["while true; do sleep 3600; done"]
+          #imagePullPolicy: IfNotPresent
           env:
             - name: PLUGINS_SERVER_HOST
               value: "0.0.0.0"
@@ -44,5 +44,7 @@ spec:
               value: "./resources/config/config.yaml"
             - name: PLUGIN_MANAGER_CONFIG
               value: "./resources/config/config.yaml"
+            - name: PYTHONPATH
+              value: "./"
           ports:
             - containerPort: 50052

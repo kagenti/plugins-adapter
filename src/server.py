@@ -46,10 +46,10 @@ async def getToolPostInvokeResponse(body):
     # for content in body["result"]["content"]:
 
     logger.debug("**** Tool Post Invoke ****")
-    payload = ToolPostInvokePayload(name="replaceme", result=body)
+    payload = ToolPostInvokePayload(name="replaceme", result=body["result"])
     # TODO: hard-coded ids
     logger.debug("**** Tool Post Invoke result ****")
-    logger.deub(payload)
+    logger.debug(payload)
     global_context = GlobalContext(request_id="1", server_id="2")
     result, contexts = await manager.invoke_hook(
         ToolHookType.TOOL_POST_INVOKE, payload, global_context=global_context
@@ -66,7 +66,7 @@ async def getToolPostInvokeResponse(body):
     else:
         result_payload = result.modified_payload
         if result_payload is not None:
-            body = result_payload.result
+            body["result"] = result_payload.result
         else:
             body = None
         body_resp = ep.ProcessingResponse(
@@ -104,11 +104,9 @@ async def getToolPreInvokeResponse(body):
             )
         )
     else:
-        logger.debug(result)
-        print(result)
         result_payload = result.modified_payload
         if result_payload is not None and result_payload.args is not None:
-            body["params"]["arguments"] = result_payload.args
+            body["params"]["arguments"] = result_payload.args["tool_args"]
         # else:
         #     body["params"]["arguments"] = None
 
@@ -253,8 +251,10 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         if data:  # List can be empty
                             data = json.loads(data[0].strip("data:"))
                         # TODO: check for tool call
-                        if "result" in data:
+                        if "result" in data and "content" in data["result"]:
                             body_resp = await getToolPostInvokeResponse(data)
+                        #elif "result" in data and "messages" in data["result"]:  #prompts
+                        #elif "result" in data and "resources" in data["result"]: #resources
                         else:
                             body_resp = ep.ProcessingResponse(
                                 response_body=ep.BodyResponse(

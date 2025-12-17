@@ -2,11 +2,12 @@
 plugins:
 # Self-contained Search Replace Plugin
   - name: "ReplaceBadWordsPlugin"
-    kind: "plugins.regex_filter.search_replace.SearchReplacePlugin"
+    kind: "plugins.examples.context_forge.internal.regex_filter.search_replace.SearchReplacePlugin"
     description: "A plugin for finding and replacing words."
     version: "0.1.0"
     author: "Teryl Taylor"
-    hooks: ["prompt_pre_fetch", "prompt_post_fetch", "tool_pre_invoke", "tool_post_invoke"]
+    #hooks: ["prompt_pre_fetch", "prompt_post_fetch", "tool_pre_invoke", "tool_post_invoke"]
+    hooks: ["tool_post_invoke"]
     tags: ["plugin", "transformer", "regex", "search-and-replace", "pre-post"]
     mode: "enforce"  # enforce | permissive | disabled
     priority: 150
