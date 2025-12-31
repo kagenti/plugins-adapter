@@ -14,4 +14,7 @@ define flow detect_pii_on_tool_input
         stop
     else
         # bot say "No PII!"
-        bot continue
+        bot finish
+
+    execute debug_log(value=$pii.found, label="has_ended_flow_with_pii")
+

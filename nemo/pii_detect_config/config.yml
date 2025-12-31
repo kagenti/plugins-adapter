@@ -5,8 +5,8 @@ models:
     engine: ollama
     model: llama3.2:3b-instruct-fp16
     parameters:
-      # Local ollama instance
-      base_url: http://localhost:11434
+      # Docker ollama instance
+      base_url: http://host.docker.internal:11434
 rails:
   input:
     flows:

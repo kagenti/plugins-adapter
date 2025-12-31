@@ -100,12 +100,55 @@ async def getToolPreInvokeResponse(body):
     logger.debug(result)
     if not result.continue_processing:
         logger.debug("continue_processing false")
+        # Note: ImmediateResponse closes the stream, which may be rejected by MCP inspector?
+        error_body = {
+            "error": {
+                "code": http_status_pb2.Forbidden,
+                "message": "No go - Tool args forbidden"
+            }
+        }
         body_resp = ep.ProcessingResponse(
             immediate_response=ep.ImmediateResponse(
-                status=http_status_pb2.HttpStatus(code=http_status_pb2.Forbidden),
-                details="No go",
+                # ok for stream but body has error
+                status=http_status_pb2.HttpStatus(code=http_status_pb2.OK),
+                headers=ep.HeaderMutation(
+                    set_headers=[
+                        # content-type does not seem to make a difference
+                        # core.HeaderValueOption(
+                        #     header=core.HeaderValue(key="content-type", value="application/x-ndjson")
+                        # ),
+                        core.HeaderValueOption(
+                            header=core.HeaderValue(key="x-mcp-denied", value="true")
+                        ),
+                    ],
+                ),
+                # This will lead to invalid MCP request
+                # body=(json.dumps(error_body) + "\n").encode("utf-8")
+                details="No go - Tool args forbidden"
             )
         )
+        # Just status and header_mutation will work - but this necessitates that the server will have
+        # to process the header
+        body_resp = ep.ProcessingResponse(
+            request_body=ep.BodyResponse(
+                response=ep.CommonResponse(
+                    status=ep.CommonResponse.CONTINUE_AND_REPLACE,
+                    header_mutation=ep.HeaderMutation(
+                        set_headers=[
+                            core.HeaderValueOption(
+                                header=core.HeaderValue(
+                                    key="x-mcp-denied",
+                                    raw_value="true".encode(
+                                        "utf-8"
+                                    ),
+                                ),
+                            )
+                        ]
+                    ),
+                )
+            )
+        )
+
     else:
         logger.debug("continue_processing true")
         result_payload = result.modified_payload
