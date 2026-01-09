@@ -15,11 +15,10 @@ WORKDIR /app
 # Copy Python dependencies and source
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN mkdir resources
-RUN mkdir src
+RUN mkdir -p src/resources
 
 COPY src/ ./src/
-COPY resources ./resources/
+COPY resources ./src/resources/
 
 WORKDIR /app/src
 # Expose the gRPC port

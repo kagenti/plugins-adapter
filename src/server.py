@@ -84,7 +84,7 @@ async def getToolPreInvokeResponse(body):
     payload_args = {
         "tool_name": body["params"]["name"],
         "tool_args": body["params"]["arguments"],
-        "session_id": "replaceme",
+        "client_session_id": "replaceme",
     }
     payload = ToolPreInvokePayload(name=body["params"]["name"], args=payload_args)
     # TODO: hard-coded ids
@@ -223,6 +223,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         body = json.loads(text)
                         if "method" in body and body["method"] == "tools/call":
                             body_resp = await getToolPreInvokeResponse(body)
+
                         elif "method" in body and body["method"] == "prompts/get":
                             body_resp = await getPromptPreFetchResponse(body)
                         else:
