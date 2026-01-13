@@ -78,6 +78,8 @@ async def getToolPostInvokeResponse(body):
         )
     return body_resp
 
+def set_result_in_body(body, result_args):
+    body["params"]["arguments"] = result_args
 
 async def getToolPreInvokeResponse(body):
     logger.debug(body)
@@ -95,8 +97,9 @@ async def getToolPreInvokeResponse(body):
         ToolHookType.TOOL_PRE_INVOKE, payload, global_context=global_context
     )
     logger.debug("**** Tool Pre Invoke Result ****")
-    logger.info(result)
+    logger.debug(result)
     if not result.continue_processing:
+        logger.debug("continue_processing false")
         body_resp = ep.ProcessingResponse(
             immediate_response=ep.ImmediateResponse(
                 status=http_status_pb2.HttpStatus(code=http_status_pb2.Forbidden),
@@ -104,13 +107,13 @@ async def getToolPreInvokeResponse(body):
             )
         )
     else:
-        logger.debug(result)
-        print(result)
+        logger.debug("continue_processing true")
         result_payload = result.modified_payload
-        if result_payload is not None and result_payload.args is not None:
-            body["params"]["arguments"] = result_payload.args
-        # else:
-        #     body["params"]["arguments"] = None
+        if result_payload is not None and result_payload.get("tool_args", None) is not None:
+            logger.debug("changing tool call args")
+            set_result_in_body(body, result_payload.args)
+        else:
+            logger.debug("No change in tool args")
 
         body_resp = ep.ProcessingResponse(
             request_body=ep.BodyResponse(
