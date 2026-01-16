@@ -35,7 +35,9 @@ class NemoWrapperPlugin(Plugin):
         )
         # NOTE: very hardcoded
         nemo_config = RailsConfig.from_path(
-            os.path.join(os.getcwd(), "plugins", "examples", "nemo", "pii_detect_config")
+            os.path.join(
+                os.getcwd(), "plugins", "examples", "nemo", "pii_detect_config"
+            )
         )
         self._rails = LLMRails(nemo_config)
         logger.info("[NemoWrapperPlugin] Plugin initialized successfully")
