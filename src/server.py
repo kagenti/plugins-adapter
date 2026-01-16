@@ -46,12 +46,12 @@ async def getToolPostInvokeResponse(body):
     # for content in body["result"]["content"]:
 
     logger.debug("**** Tool Post Invoke ****")
-    payload = ToolPostInvokePayload(name="replaceme", result=body)
+    payload = ToolPostInvokePayload(name="replaceme", result=body["result"])
     # TODO: hard-coded ids
-    logger.debug("**** Tool Post Invoke result ****")
-    logger.deub(payload)
+    logger.debug("**** Tool Post Invoke payload ****")
+    logger.debug(payload)
     global_context = GlobalContext(request_id="1", server_id="2")
-    result, contexts = await manager.invoke_hook(
+    result, _ = await manager.invoke_hook(
         ToolHookType.TOOL_POST_INVOKE, payload, global_context=global_context
     )
     logger.info(result)
@@ -66,7 +66,7 @@ async def getToolPostInvokeResponse(body):
     else:
         result_payload = result.modified_payload
         if result_payload is not None:
-            body = result_payload.result
+            body["result"] = result_payload.result
         else:
             body = None
         body_resp = ep.ProcessingResponse(
@@ -78,8 +78,10 @@ async def getToolPostInvokeResponse(body):
         )
     return body_resp
 
+
 def set_result_in_body(body, result_args):
     body["params"]["arguments"] = result_args
+
 
 async def getToolPreInvokeResponse(body):
     logger.debug(body)
@@ -93,25 +95,44 @@ async def getToolPreInvokeResponse(body):
     global_context = GlobalContext(request_id="1", server_id="2")
     logger.debug("**** Invoking Tool Pre Invoke with payload ****")
     logger.debug(payload)
-    result, contexts = await manager.invoke_hook(
+    result, _ = await manager.invoke_hook(
         ToolHookType.TOOL_PRE_INVOKE, payload, global_context=global_context
     )
     logger.debug("**** Tool Pre Invoke Result ****")
     logger.debug(result)
     if not result.continue_processing:
-        logger.debug("continue_processing false")
+        error_body = {
+            "jsonrpc": body["jsonrpc"],
+            "id": body["id"],
+            "error": {"code": -32000, "message": "No go - Tool args forbidden"},
+        }
         body_resp = ep.ProcessingResponse(
             immediate_response=ep.ImmediateResponse(
-                status=http_status_pb2.HttpStatus(code=http_status_pb2.Forbidden),
-                details="No go",
+                # ok for stream, with error in body
+                status=http_status_pb2.HttpStatus(code=200),
+                headers=ep.HeaderMutation(
+                    set_headers=[
+                        core.HeaderValueOption(
+                            header=core.HeaderValue(
+                                key="content-type",
+                                raw_value="application/json".encode("utf-8"),
+                            )
+                        ),
+                        core.HeaderValueOption(
+                            header=core.HeaderValue(
+                                key="x-mcp-denied", raw_value="True".encode("utf-8")
+                            )
+                        ),
+                    ],
+                ),
+                body=(json.dumps(error_body)).encode("utf-8"),
             )
         )
     else:
         logger.debug("continue_processing true")
         result_payload = result.modified_payload
-        if result_payload is not None and result_payload.get("tool_args", None) is not None:
-            logger.debug("changing tool call args")
-            set_result_in_body(body, result_payload.args)
+        if result_payload is not None and result_payload.args is not None:
+            body["params"]["arguments"] = result_payload.args["tool_args"]
         else:
             logger.debug("No change in tool args")
 
@@ -257,7 +278,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         if data:  # List can be empty
                             data = json.loads(data[0].strip("data:"))
                         # TODO: check for tool call
-                        if "result" in data:
+                        if "result" in data and "content" in data["result"]:
                             body_resp = await getToolPostInvokeResponse(data)
                         else:
                             body_resp = ep.ProcessingResponse(
@@ -276,6 +297,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
 async def serve(host: str = "0.0.0.0", port: int = 50052):
     await manager.initialize()
     logger.info(manager.config)
+    logger.debug(f"Loaded {manager.plugin_count} plugins")
 
     server = grpc.aio.server()
     # server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

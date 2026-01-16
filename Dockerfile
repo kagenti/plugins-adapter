@@ -3,7 +3,7 @@
 FROM public.ecr.aws/docker/library/python:3.12.12-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git \
+    && apt-get install -y --no-install-recommends git gcc g++ \
     && apt-get purge -y --auto-remove \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,10 +19,10 @@ RUN mkdir -p src/resources
 
 COPY src/ ./src/
 COPY resources ./src/resources/
+COPY plugins ./plugins/
 
-WORKDIR /app/src
 # Expose the gRPC port
 EXPOSE 50052
 
 # Run the server
-CMD ["python", "server.py"]
+CMD ["python", "src/server.py"]

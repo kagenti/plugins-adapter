@@ -32,7 +32,7 @@ spec:
           image: plugins-adapter:0.1.0
           # command: ["bash", "-c","--"]
           # args: ["while true; do sleep 3600; done"]
-#          imagePullPolicy: IfNotPresent
+          # imagePullPolicy: IfNotPresent
           env:
             - name: PLUGINS_SERVER_HOST
               value: "0.0.0.0"
@@ -40,9 +40,12 @@ spec:
               value: "DEBUG"
             - name: PLUGINS_ENABLED
               value: "true"
+            # Note: The Dockerfile currently moves resources under ./src/resources
             - name: PLUGIN_CONFIG_FILE
-              value: "./resources/config/config.yaml"
+              value: "./src/resources/config/config.yaml"
             - name: PLUGIN_MANAGER_CONFIG
-              value: "./resources/config/config.yaml"
+              value: "./src/resources/config/config.yaml"
+            - name: PYTHONPATH
+              value: "./"
           ports:
             - containerPort: 50052
