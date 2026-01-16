@@ -1,0 +1,17 @@
+# Note: tool_call is w.r.t. LLM for nemo
+# Here, we happen to use the flow on tool input but the LLM itself is not making a tool call
+
+define flow detect_pii_on_tool_input
+    execute debug_log(value=$user_message, label="user_message")
+
+    $pii = execute detect_pii(tool_input=$user_message)
+
+    execute debug_log(value=$pii, label="has_pii")
+
+    if $pii.found
+        bot say "PII detected, refusing to continue"
+        # bot refuse just marks the response as refused instead of stopping
+        stop
+    else
+        # bot say "No PII!"
+        bot continue

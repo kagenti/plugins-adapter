@@ -1,0 +1,11 @@
+name: nemo_wrapper
+kind: nemo.plugin_external.NemoWrapperPlugin
+version: 1.0.0
+description: Attempted Nemo wrapper
+author: Evaline Ju
+priority: 10
+hooks:
+  - TOOL_PRE_INVOKE
+  - TOOL_POST_INVOKE
+config:
+  foo: bar
