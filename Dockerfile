@@ -19,20 +19,10 @@ RUN mkdir -p src/resources
 
 COPY src/ ./src/
 COPY resources ./src/resources/
-RUN mkdir resources
-RUN mkdir src
-RUN mkdir contextforge-plugins-python
-RUN mkdir nemo
-
-COPY src/ ./src/
-COPY resources ./resources/
 COPY plugins ./plugins/
-COPY contextforge-plugins-python ./contextforge-plugins-python/
-COPY nemo ./nemo/
 
-WORKDIR /app/src
 # Expose the gRPC port
 EXPOSE 50052
 
 # Run the server
-CMD ["python", "server.py"]
+CMD ["python", "src/server.py"]

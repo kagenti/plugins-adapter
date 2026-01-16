@@ -14,6 +14,7 @@ def debug_log(value, label: str = "DEBUG"):
     logger.warning(f"{label}: {value}")
     return value
 
+
 @action()
 def detect_pii(tool_input):
     """
