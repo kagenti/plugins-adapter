@@ -42,6 +42,10 @@ spec:
               value: "true"
             # Note: The Dockerfile currently moves resources under ./src/resources
             - name: PLUGIN_CONFIG_FILE
-              value: "./resources/config/config.yaml"
+              value: "./src/resources/config/config.yaml"
             - name: PLUGIN_MANAGER_CONFIG
-              value: "./resources/config/config.yaml"
+              value: "./src/resources/config/config.yaml"
+            - name: PYTHONPATH
+              value: "./"
+          ports:
+            - containerPort: 50052
