@@ -10,8 +10,6 @@ define flow detect_pii_on_tool_input
 
     if $pii.found
         bot say "PII detected, refusing to continue"
-        # bot refuse just marks the response as refused instead of stopping
-        stop
     else
-        # bot say "No PII!"
-        bot continue
+        bot say "No PII!"
+    abort
