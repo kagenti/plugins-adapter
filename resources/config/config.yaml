@@ -23,7 +23,7 @@ plugins:
           replace: yikes
   # Nemo example
   - name: "NemoWrapperPlugin"
-    kind: "plugins.nemo.nemo_wrapper_plugin.NemoWrapperPlugin"
+    kind: "plugins.examples.nemo.nemo_wrapper_plugin.NemoWrapperPlugin"
     description: "A simple Nemo PII detector"
     version: "0.1.0"
     author: "Evaline Ju"
@@ -36,10 +36,10 @@ plugins:
 
 # Plugin directories to scan
 plugin_dirs:
-  - "plugins/native"      # Built-in plugins
-  - "plugins/custom"      # Custom organization plugins
+  - "plugins/native"           # Built-in plugins
+  - "plugins/custom"           # Custom organization plugins
   - "/etc/mcpgateway/plugins"  # System-wide plugins
-  - "plugins/nemo"        # Example Nemo Guardrails plugins
+  - "plugins/examples/nemo"    # Example Nemo guardrails plugins
 
 # Global plugin settings
 plugin_settings:
