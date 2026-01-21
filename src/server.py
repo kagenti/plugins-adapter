@@ -13,9 +13,6 @@ from envoy.type.v3 import http_status_pb2 as http_status_pb2
 
 # plugin manager
 # First-Party
-# from apex.mcp.entities.models import HookType, Message, PromptResult, Role, TextContent, PromptPosthookPayload, PromptPrehookPayload
-# import apex.mcp.entities.models as apex
-# import mcpgateway.plugins.tools.models as apex
 from mcpgateway.plugins.framework import (
     ToolHookType,
     PromptPrehookPayload,
@@ -24,60 +21,12 @@ from mcpgateway.plugins.framework import (
 )
 from mcpgateway.plugins.framework import PluginManager
 from mcpgateway.plugins.framework.models import GlobalContext
-# from apex.framework.manager import PluginManager
-# from apex.framework.models import GlobalContext
-# from plugins.regex_filter.search_replace import SearchReplaceConfig
 
 log_level = os.environ.get("LOGLEVEL", "INFO").upper()
 
 logging.basicConfig(level=log_level)
 logger = logging.getLogger("ext-proc-PM")
 logger.setLevel(log_level)
-
-# handler = logging.StreamHandler()
-# handler.setLevel(log_level)
-
-# # Add the handler to the logger
-# logger.addHandler(handler)
-
-
-async def getToolPostInvokeResponse(body):
-    # FIXME: size of content array is expected to be 1
-    # for content in body["result"]["content"]:
-
-    logger.debug("**** Tool Post Invoke ****")
-    payload = ToolPostInvokePayload(name="replaceme", result=body["result"])
-    # TODO: hard-coded ids
-    logger.debug("**** Tool Post Invoke payload ****")
-    logger.debug(payload)
-    global_context = GlobalContext(request_id="1", server_id="2")
-    result, _ = await manager.invoke_hook(
-        ToolHookType.TOOL_POST_INVOKE, payload, global_context=global_context
-    )
-    logger.info(result)
-    if not result.continue_processing:
-        body_resp = ep.ProcessingResponse(
-            immediate_response=ep.ImmediateResponse(
-                # TODO: hard-coded error reason
-                status=http_status_pb2.HttpStatus(code=http_status_pb2.Forbidden),
-                details="No go",
-            )
-        )
-    else:
-        result_payload = result.modified_payload
-        if result_payload is not None:
-            body["result"] = result_payload.result
-        else:
-            body = None
-        body_resp = ep.ProcessingResponse(
-            request_body=ep.BodyResponse(
-                response=ep.CommonResponse(
-                    body_mutation=ep.BodyMutation(body=json.dumps(body).encode("utf-8"))
-                )
-            )
-        )
-    return body_resp
-
 
 def set_result_in_body(body, result_args):
     body["params"]["arguments"] = result_args
@@ -145,6 +94,44 @@ async def getToolPreInvokeResponse(body):
         )
     logger.info("****Tool Pre Invoke Return body****")
     logger.info(body_resp)
+    return body_resp
+
+
+async def getToolPostInvokeResponse(body):
+    # FIXME: size of content array is expected to be 1
+    # for content in body["result"]["content"]:
+
+    logger.debug("**** Tool Post Invoke ****")
+    payload = ToolPostInvokePayload(name="replaceme", result=body["result"])
+    # TODO: hard-coded ids
+    logger.debug("**** Tool Post Invoke payload ****")
+    logger.debug(payload)
+    global_context = GlobalContext(request_id="1", server_id="2")
+    result, _ = await manager.invoke_hook(
+        ToolHookType.TOOL_POST_INVOKE, payload, global_context=global_context
+    )
+    logger.info(result)
+    if not result.continue_processing:
+        body_resp = ep.ProcessingResponse(
+            immediate_response=ep.ImmediateResponse(
+                # TODO: hard-coded error reason
+                status=http_status_pb2.HttpStatus(code=http_status_pb2.Forbidden),
+                details="No go",
+            )
+        )
+    else:
+        result_payload = result.modified_payload
+        if result_payload is not None:
+            body["result"] = result_payload.result
+        else:
+            body = None
+        body_resp = ep.ProcessingResponse(
+            request_body=ep.BodyResponse(
+                response=ep.CommonResponse(
+                    body_mutation=ep.BodyMutation(body=json.dumps(body).encode("utf-8"))
+                )
+            )
+        )
     return body_resp
 
 
