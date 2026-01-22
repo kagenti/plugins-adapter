@@ -48,6 +48,8 @@ deploy:
 	kubectl apply -f ext-proc.yaml
 	kubectl apply -f filter.yaml
 
+lint:
+	uv run ruff check --fix
 
 redeploy: delete deploy
 

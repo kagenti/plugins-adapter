@@ -101,18 +101,21 @@ async def getToolPreInvokeResponse(body):
         result_payload = result.modified_payload
         if result_payload is not None and result_payload.args is not None:
             body["params"]["arguments"] = result_payload.args["tool_args"]
-        else:
-            logger.debug("No change in tool args")
-
-        body_resp = ep.ProcessingResponse(
-            request_body=ep.BodyResponse(
+            body_mutation=ep.BodyResponse(
                 response=ep.CommonResponse(
                     body_mutation=ep.BodyMutation(body=json.dumps(body).encode("utf-8"))
                 )
             )
+        else:
+            logger.debug("No change in tool args")
+            body_mutation=ep.BodyResponse(
+                response=ep.CommonResponse()
+            )
+        body_resp = ep.ProcessingResponse(
+            request_body=body_mutation
         )
     logger.info(f"****Tool Pre Invoke Return body: {body_resp}****")
-    return body_resp
+    return body_resp 
 
 
 async def getToolPostInvokeResponse(body):
@@ -146,14 +149,17 @@ async def getToolPostInvokeResponse(body):
         result_payload = result.modified_payload
         if result_payload is not None:
             body["result"] = result_payload.result
-        else:
-            body = None
-        body_resp = ep.ProcessingResponse(
-            request_body=ep.BodyResponse(
+            body_mutation=ep.BodyResponse(
                 response=ep.CommonResponse(
                     body_mutation=ep.BodyMutation(body=json.dumps(body).encode("utf-8"))
                 )
             )
+        else:
+            body_mutation=ep.BodyResponse(
+                response=ep.CommonResponse()
+            )
+        body_resp = ep.ProcessingResponse(
+            request_body=body_mutation
         )
     return body_resp
 
@@ -331,6 +337,17 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                             )
                         yield body_resp
                     resp_body_buf.clear()
+            # ----------------------------------------------------------------
+            # Response Body Processing (No body field)
+            # ----------------------------------------------------------------
+            elif request.HasField("response_body"):
+                logger.warning("On Response, no body.")
+                body_resp = ep.ProcessingResponse(
+                    response_body=ep.BodyResponse(
+                        response=ep.CommonResponse()
+                    )
+                )
+                yield body_resp            
 
             else:
                 # Unhandled request types
