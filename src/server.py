@@ -36,13 +36,16 @@ logger.setLevel(log_level)
 # HELPER FUNCTIONS
 # ============================================================================
 
+
 def set_result_in_body(body, result_args):
     """Set the result arguments in the request body."""
     body["params"]["arguments"] = result_args
 
+
 # ============================================================================
 # MCP HOOK HANDLERS
 # ============================================================================
+
 
 async def getToolPreInvokeResponse(body):
     """
@@ -195,6 +198,7 @@ async def getPromptPreFetchResponse(body):
 # ENVOY EXTERNAL PROCESSOR SERVICER
 # ============================================================================
 
+
 class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
     """
     Envoy External Processor implementation for MCP Gateway.
@@ -202,6 +206,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
     Processes HTTP requests and responses, intercepting MCP protocol messages
     to apply plugin hooks at various stages of the request/response lifecycle.
     """
+
     async def Process(
         self, request_iterator: AsyncIterator[ep.ProcessingRequest], context
     ) -> AsyncIterator[ep.ProcessingResponse]:
@@ -335,6 +340,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
 # ============================================================================
 # SERVER INITIALIZATION
 # ============================================================================
+
 
 async def serve(host: str = "0.0.0.0", port: int = 50052):
     """
