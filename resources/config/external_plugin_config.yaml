@@ -1,12 +1,12 @@
 # plugins/config.yaml - Main plugin configuration file
 plugins:
-  - name: apex-guacf
+  - name: CfDLGuard
     kind: external
     hooks: ["tool_pre_invoke", "tool_post_invoke"]    
     mode: enforce
     mcp:
       proto: STREAMABLEHTTP
-      url: http://guacf-apex-service:8000/mcp
+      url: http://dlguard-plugin-service:8000/mcp
 #      tls:
 #        certfile: /path/to/client-cert.pem
 #        keyfile: /path/to/client-key.pem
