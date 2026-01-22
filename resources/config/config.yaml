@@ -2,7 +2,8 @@
 plugins:
   # Self-contained Search Replace Plugin - depends on plugin availability
   - name: "ReplaceBadWordsPlugin"
-    kind: "plugins.regex_filter.search_replace.SearchReplacePlugin"
+    # From https://github.com/contextforge-org/contextforge-plugins-python
+    kind: "contextforge-plugins-python.regex_filter.search_replace.SearchReplacePlugin"
     description: "A plugin for finding and replacing words."
     version: "0.1.0"
     author: "Teryl Taylor"
