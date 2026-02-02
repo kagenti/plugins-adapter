@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nemo-guardrails
+  namespace: istio-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nemo-guardrails
+  template:
+    metadata:
+      labels:
+        app: nemo-guardrails
+    spec:
+      containers:
+      - name: llm-proxy
+        image: localhost/llm-proxy:0.1.0
+        envFrom:
+        - secretRef:
+            name: rits-api-key
+      - name: nemo-guardrails
+        image: quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: CONFIG_ID
+          value: rails-custom-action
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config/rails-custom-action
+      volumes:
+      - name: config-volume
+        configMap:
+          name: nemo-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nemo-guardrails-service
+  namespace: istio-system
+spec:
+  selector:
+    app: nemo-guardrails
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
