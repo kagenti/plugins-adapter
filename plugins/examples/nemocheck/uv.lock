@@ -1268,6 +1268,11 @@ dev = [
     { name = "uv" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "ruff" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=25.1.0" },
@@ -1288,6 +1293,9 @@ requires-dist = [
     { name = "uv", marker = "extra == 'dev'", specifier = ">=0.8.11" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.14.14" }]
 
 [[package]]
 name = "oauthlib"

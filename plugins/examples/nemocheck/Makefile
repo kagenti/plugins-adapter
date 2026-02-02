@@ -417,8 +417,13 @@ build:
 load: container-build
 	kind load docker-image  $(IMAGE_BASE):$(IMAGE_TAG) --name mcp-gateway
 
+.PHONY: redeploy
+redeploy: 
+	-kubectl delete -f k8deploy/deploy.yaml
+	kubectl apply -f k8deploy/deploy.yaml
+
 .PHONY: deploy
-deploy:
+deploy: load
 	-kubectl delete -f k8deploy/deploy.yaml
 	kubectl apply -f k8deploy/deploy.yaml
 
@@ -434,6 +439,16 @@ stop:
 clean:
 	find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
 	rm -rf *.egg-info .pytest_cache tests/.pytest_cache build dist .ruff_cache .coverage
+
+.PHONY: logs
+logs:
+	kubectl logs -f -l app=nemocheck-plugin -n istio-system
+
+.PHONY: lint
+lint:
+	uv run ruff check --fix
+	uv run ruff format .
+
 
 .PHONY: help
 help:

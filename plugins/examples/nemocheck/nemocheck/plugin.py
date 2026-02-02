@@ -20,7 +20,9 @@ from mcpgateway.plugins.framework import (
     ToolPostInvokeResult,
     ToolPreInvokePayload,
     ToolPreInvokeResult,
+    PluginViolation,
 )
+
 
 import logging
 import os
@@ -29,15 +31,16 @@ import os
 import requests
 
 headers = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
 }
- # Initialize logging service first
+# Initialize logging service first
 logger = logging.getLogger(__name__)
-log_level = os.getenv('LOGLEVEL', 'INFO').upper()
+log_level = os.getenv("LOGLEVEL", "INFO").upper()
 logger.setLevel(log_level)
 
-MODEL_NAME = os.getenv('NEMO_MODEL','meta-llama/llama-3-3-70b-instruct')
-CHECK_ENDPOINT = os.getenv('CHECK_ENDPOINT','http://nemo-guardrails-service:8000')
+MODEL_NAME = os.getenv("NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct")
+CHECK_ENDPOINT = os.getenv("CHECK_ENDPOINT", "http://nemo-guardrails-service:8000")
+
 
 class NemoCheck(Plugin):
     """Adapter for Nemo-Check guardrails."""
@@ -61,7 +64,6 @@ class NemoCheck(Plugin):
         Returns:
             The result of the plugin's analysis, including whether the prompt can proceed.
         """
-
 
         return PromptPrehookResult(continue_processing=True)
 
@@ -89,30 +91,49 @@ class NemoCheck(Plugin):
         """
         logger.info("tool_pre_invoke....")
         logger.info(payload)
-        tool_name = payload.name #("tool_name", None)
-        check_nemo_payload= {
-                "model": MODEL_NAME,
-                "messages": [
+        tool_name = payload.name  # ("tool_name", None)
+        check_nemo_payload = {
+            "model": MODEL_NAME,
+            "messages": [
                 {
                     "role": "assistant",
                     "tool_calls": [
-                    {
-                        "id": "call_plug_adap_nem_check_123",
-                        "type": "function",
-                        "function": {
-                        "name": tool_name,
-                        "arguments": payload.args.get("tool_args",None),
+                        {
+                            "id": "call_plug_adap_nem_check_123",
+                            "type": "function",
+                            "function": {
+                                "name": tool_name,
+                                "arguments": payload.args.get("tool_args", None),
+                            },
                         }
-                    }
-                    ]
+                    ],
                 }
-                ]
-            }        
-        
+            ],
+        }
+        violation = None
         response = requests.post(CHECK_ENDPOINT, headers=headers, json=check_nemo_payload)
+        if response.status_code == 200:
+            data = response.json()
+            status = data.get("status", "blocked")
+            logger.debug(f"rails reply:{data}")
+            if status == "success":
+                metadata = data.get("rails_status")
+                result = ToolPreInvokeResult(continue_processing=True, metadata=metadata)
+            else:
+                metadata = data.get("rails_status")
+                violation = PluginViolation(
+                    reason=f"Tool Check status:{status}", description="Rails check blocked request", code=f"checkserver_http_status_code:{response.status_code}", details=metadata
+                )
+                result = ToolPreInvokeResult(continue_processing=False, violation=violation, metadata=metadata)
+
+        else:
+            violation = PluginViolation(
+                reason="Tool Check Unavailable", description="Tool arguments check server returned error:", code=f"checkserver_http_status_code:{response.status_code}", details={}
+            )
+            result = ToolPreInvokeResult(continue_processing=False, violation=violation)
         logger.info(response)
 
-        return ToolPreInvokeResult(continue_processing=True)
+        return result
 
     async def tool_post_invoke(self, payload: ToolPostInvokePayload, context: PluginContext) -> ToolPostInvokeResult:
         """Plugin hook run after a tool is invoked.

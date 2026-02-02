@@ -96,3 +96,8 @@ exclude = ["tests*"]
 nemocheck = [
   "resources/plugins/config.yaml",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+]
