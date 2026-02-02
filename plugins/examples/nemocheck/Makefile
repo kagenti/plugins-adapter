@@ -58,7 +58,7 @@ print-runtime:
 
 # Base image name (without any prefix)
 IMAGE_BASE ?= mcpgateway/$(PROJECT_NAME)
-IMAGE_TAG ?= latest
+IMAGE_TAG ?= 0.1.0
 
 # Handle runtime-specific image naming
 ifeq ($(CONTAINER_RUNTIME),podman)
@@ -411,6 +411,16 @@ serve:
 .PHONY: build
 build:
 	@$(MAKE) container-build
+
+
+.PHONY: load
+load: container-build
+	kind load docker-image  $(IMAGE_BASE):$(IMAGE_TAG) --name mcp-gateway
+
+.PHONY: deploy
+deploy:
+	-kubectl delete -f k8deploy/deploy.yaml
+	kubectl apply -f k8deploy/deploy.yaml
 
 .PHONY: start
 start:

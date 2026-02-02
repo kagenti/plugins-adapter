@@ -30,11 +30,7 @@ spec:
       containers:
         - name: nemocheck-plugin
           # Built from Dockerfile: docker build -t nemocheck-plugin:latest .
-          # Load onto kind cluster: kind load docker-image nemocheck-plugin:latest --name mcp-gateway
-          image: localhost/nemocheck-plugin:0.1.0
-#          imagePullPolicy: Always
-#          command: ["bash", "-c","--"]
-#          args: ["while true; do sleep 3600; done"]
+          image: mcpgateway/nemocheck:0.1.0
           env:
             - name: MODEL_NAME
               value: "meta-llama/llama-3-3-70b-instruct"
