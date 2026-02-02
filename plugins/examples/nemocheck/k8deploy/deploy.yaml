@@ -36,5 +36,26 @@ spec:
               value: "meta-llama/llama-3-3-70b-instruct"
             - name: CHECK_ENDPOINT
               value: "http://nemo-guardrails-service:8000"
+            - name: PLUGINS_SERVER_HOST
+              value: "0.0.0.0"
+            - name: PLUGINS_ENABLED
+              value: "false"
+            - name: PLUGINS_CLI_COMPLETION  
+              value: "false"
+            - name: PLUGINS_CLI_MARKUP_MODE  
+              value: "rich"
+            - name: PLUGINS_CONFIG  
+              value: "./resources/plugins/config.yaml"
+            # - name: CHUK_MCP_CONFIG_PATH  
+              # value: "./resources/runtime/config.yaml"
+            - name: MCP_SSL_ENABLED  
+              value: "false"
+            - name: MCP_SSL_CERT_REQS  
+              value: "0"
+            - name: LOGLEVEL
+              value: "DEBUG"
+            - name: PLUGINS_TRANSPORT
+              value: "http"
+
           ports:
             - containerPort: 8000

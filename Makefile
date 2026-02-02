@@ -50,6 +50,7 @@ deploy:
 
 lint:
 	uv run ruff check --fix
+	uv run ruff format
 
 redeploy: delete deploy
 
@@ -59,6 +60,9 @@ push_image_quay: build
 
 all: build load redeploy
 	@echo "All done!"
+
+port-forward-nemo:
+	kubectl port-forward -n istio-system service/nemo-guardrails-service 8000:8000
 
 deploy_quay: IMAGE=quay.io/julian_stephen/$(IMAGE_PUSH)
 deploy_quay: 
