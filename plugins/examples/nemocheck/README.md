@@ -8,27 +8,22 @@ Adapter for Nemo-Check guardrails.
  1. Run Nemo Guardrails check server. Instructions here
  1. Update `CHECK_ENDPOINT` variable in k8deploy/deploy.yaml to point to guardrails check server endpoint
 
-{% tabs %}
+    ```bash
+        cd plugins-adapter/plugins/examples/nemocheck
+        make deploy
+    ```
+1.
+    <details>
+    <summary>Non-kind k8 cluster instructions</summary>
 
-{% tab title="Kind" %} 
-```bash
-    cd plugins-adapter/plugins/examples/nemocheck
-    make deploy
-```
-{% endtab %}
+    ```bash
+        cd plugins-adapter/plugins/examples/nemocheck
+        make container-build
+        # push image to your container repo and update image name in k8deploy/deploy.yaml
+        kubectl apply -f k8deploy/deploy.yaml
 
-{% tab title="K8 cluster" %} 
-
-```bash
-    cd plugins-adapter/plugins/examples/nemocheck
-    make container-build
-    # push image to your container repo and update image name in k8deploy/deploy.yaml
-    kubectl apply -f k8deploy/deploy.yaml
-
-```
-{% endtab %}
-
-{% endtabs %}
+    ```
+    </details>
 
  1. Update plugin adapter to call this as an external plugin
    
