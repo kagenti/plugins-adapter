@@ -1,9 +1,44 @@
-# NemoCheck for Context Forge MCP Gateway
+# NemoCheck for Plugin Adapter
 
 Adapter for Nemo-Check guardrails.
 
 
-## Installation
+## Run plugin in kind cluster
+
+ 1. Run Nemo Guardrails check server. Instructions here
+ 1. Update `CHECK_ENDPOINT` variable in k8deploy/deploy.yaml to point to guardrails check server endpoint
+
+{% tabs %}
+
+{% tab title="Kind" %} 
+```bash
+    cd plugins-adapter/plugins/examples/nemocheck
+    make deploy
+```
+{% endtab %}
+
+{% tab title="K8 cluster" %} 
+
+```bash
+    cd plugins-adapter/plugins/examples/nemocheck
+    make container-build
+    # push image to your container repo and update image name in k8deploy/deploy.yaml
+    kubectl apply -f k8deploy/deploy.yaml
+
+```
+{% endtab %}
+
+{% endtabs %}
+
+ 1. Update plugin adapter to call this as an external plugin
+   
+   ```bash
+   cd ../../.. #project root directory plugins-adapter`
+   cp resources/config/external_plugin_nemocheck.yaml resources/config/config.yaml 
+   make all
+   ```
+
+## Plugin Development 
 
 To install dependencies with dev packages (required for linting and testing):
 
