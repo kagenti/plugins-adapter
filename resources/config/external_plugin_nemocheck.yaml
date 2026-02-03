@@ -1,6 +1,6 @@
 # plugins/config.yaml - Main plugin configuration file
 plugins:
-  - name: nemocheck
+  - name: NemoCheck
     kind: external
     hooks: ["tool_pre_invoke", "tool_post_invoke"]    
     mode: enforce
