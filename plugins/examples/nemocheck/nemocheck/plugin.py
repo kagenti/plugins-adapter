@@ -26,8 +26,6 @@ from mcpgateway.plugins.framework import (
 
 import logging
 import os
-from dotenv import load_dotenv
-import os
 import requests
 
 headers = {
