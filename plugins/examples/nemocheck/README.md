@@ -5,7 +5,7 @@ Adapter for Nemo-Check guardrails.
 
 ## Run plugin in kind cluster
 
- 1. Run Nemo Guardrails check server. Instructions [here](#deploy-checkserver)
+ 1. Run Nemo Guardrails check server. Instructions [here](#Deploy-checkserver)
  1. Update `CHECK_ENDPOINT` variable in k8deploy/deploy.yaml to point to guardrails check server endpoint
 
     ```bash
@@ -34,21 +34,21 @@ Adapter for Nemo-Check guardrails.
    ```
 
 ## Test with MCP inspector
-    * Add allowed tools to `plugins-adapter/plugins/examples/nemocheck/k8deploy/config-tools.yaml#check_tool_call_safety` 
-    * Redeploy check server
-    * Open mcp inspector. Try tools in allow list vs tools not in allow list
+ * Add allowed tools to `plugins-adapter/plugins/examples/nemocheck/k8deploy/config-tools.yaml#check_tool_call_safety` 
+ * Redeploy check server
+ * Open mcp inspector. Try tools in allow list vs tools not in allow list
 
 
-## deploy-checkserver
-    * Refer to [orignal repo](https://github.com/m-misiura/demos/tree/main/nemo_openshift/guardrail-checks/deployment) for full instructions
-    * Instructions adpated for mcpgateway kind cluster to work with an llm proxy routing to some open ai compatable backend below
-        * Makefile has targets to load checkserver to kind cluster, etc.
+## Deploy-checkserver
+ * Refer to [orignal repo](https://github.com/m-misiura/demos/tree/main/nemo_openshift/guardrail-checks/deployment) for full instructions
+ * Instructions adpated for mcpgateway kind cluster to work with an llm proxy routing to some open ai compatable backend below
+ * Makefile has targets to load checkserver to kind cluster, etc.
 
-        ```bash
-        cd plugins-adapter/plugins/examples/nemocheck/k8deploy
-        make deploy
+   ```bash
+   cd plugins-adapter/plugins/examples/nemocheck/k8deploy
+   make deploy
 
-        ```
+   ```
 
 
 ## Plugin Development 
