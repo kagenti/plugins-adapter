@@ -124,7 +124,7 @@ data:
         if tool_calls is None:
             tool_calls = context.get("tool_calls", []) if context else []
 
-        allowed_tools = ["get_weather", "search_web", "get_time"]
+        allowed_tools = ["get_weather", "search_web", "get_time", "test2_hello_world", "slack_read_messaegs"]
 
         for tool_call in tool_calls:
             if tool_call.get("name", "") not in allowed_tools:
