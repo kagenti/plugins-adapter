@@ -12,7 +12,7 @@ Adapter for Nemo-Check guardrails.
     cd plugins-adapter/plugins/examples/nemocheck
     make deploy
     ```
-1.
+ 1.
     <details>
     <summary>Non-kind k8 cluster instructions</summary>
 
@@ -50,7 +50,7 @@ async def check_tool_call_safety(tool_calls=None, context=None):
     """Allow list for tool execution."""
       ...
       allowed_tools = ["get_weather", "search_web", 
-          "get_time", "slack_read_messaegs"]
+          "get_time", "slack_read_messages"]
       ...
 ```  
 </pre>
@@ -63,7 +63,7 @@ async def check_tool_call_safety(tool_calls=None, context=None):
     """Allow list for tool execution."""
       ...
       allowed_tools = ["get_weather", "search_web", "get_time", 
-          "test2_hello_world", "slack_read_messaegs"]
+          "test2_hello_world", "slack_read_messages"]
       ...
 ```  
 
