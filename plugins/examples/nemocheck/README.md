@@ -35,6 +35,43 @@ Adapter for Nemo-Check guardrails.
 
 ## Test with MCP inspector
  * Add allowed tools to `plugins-adapter/plugins/examples/nemocheck/k8deploy/config-tools.yaml#check_tool_call_safety` 
+<table>
+<tr>
+<th> config-tools.yaml line-127</th>
+<th>Updated to add test2_hello_world </th>
+</tr>
+<tr>
+<td>
+<pre>
+
+```python
+@action(is_system_action=True)
+async def check_tool_call_safety(tool_calls=None, context=None):
+    """Allow list for tool execution."""
+      ...
+      allowed_tools = ["get_weather", "search_web", 
+          "get_time", "slack_read_messaegs"]
+      ...
+```  
+</pre>
+</td>
+<td>
+
+```python
+@action(is_system_action=True)
+async def check_tool_call_safety(tool_calls=None, context=None):
+    """Allow list for tool execution."""
+      ...
+      allowed_tools = ["get_weather", "search_web", "get_time", 
+          "test2_hello_world", "slack_read_messaegs"]
+      ...
+```  
+
+</td>
+</tr>
+</table>
+
+
  * Redeploy check server
  * Open mcp inspector. Try tools in allow list vs tools not in allow list
 
