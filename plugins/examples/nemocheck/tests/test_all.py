@@ -17,7 +17,6 @@ from mcpgateway.plugins.framework import (
     PromptPrehookPayload,
     ToolHookType,
     ToolPostInvokePayload,
-    ToolPreInvokePayload,
 )
 
 
@@ -52,7 +51,6 @@ async def test_prompt_post_hook(plugin_manager: PluginManager):
     result, _ = await plugin_manager.invoke_hook(PromptHookType.PROMPT_POST_FETCH, payload, global_context)
     # Assert expected behaviors
     assert result.continue_processing
-
 
 
 @pytest.mark.asyncio
