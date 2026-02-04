@@ -7,13 +7,6 @@ An Envoy external processor (ext-proc) for configuring and invoking guardrails i
 ### Prerequisites
 - [kubectl](https://kubernetes.io/docs/reference/kubectl/) configured in CLI
 
-### Deploy with Pre-built Image
-```bash
-git clone https://github.com/kagenti/plugins-adapter.git
-cd plugins-adapter
-make deploy_quay
-```
-
 ## Full Dev Build
 
 1. **Build Protocol Buffers**
