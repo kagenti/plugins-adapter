@@ -402,7 +402,7 @@ lock:
 
 .PHONY: test
 test:
-	pytest tests
+	uv run pytest tests
 
 .PHONY: serve
 serve:
