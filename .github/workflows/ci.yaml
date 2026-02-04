@@ -49,6 +49,6 @@ jobs:
           uv sync --all-groups
       - name: Run nemocheck external plugin tests
         working-directory: ./plugins/examples/nemocheck
-        run: pytest tests 
+        run: uv run pytest tests 
           
       # - name: Test
