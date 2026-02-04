@@ -7,8 +7,9 @@ cd plugins-adapter
 make all
 ```
 
-## Enable Debug Logs
+## Enable MCP gateway debug Logs
 
-From mcp-gateway folder:
+From [mcp-gateway](https://github.com/kagenti/mcp-gateway):
 ```bash
 make debug-envoy-impl
+```

@@ -26,7 +26,7 @@ If you prefer not to use `proto-build.sh`:
 
 2. **Build Envoy protobufs**
 
-   Code to help pull and build: `https://github.com/cetanu/envoy_data_plane.git`
+   Code to help pull and build is at: `https://github.com/cetanu/envoy_data_plane.git`. This builds envoy protos in `src/envoy_data_plane_pb2/`. Copy the `envoy` directory.
 
    ```sh
    cd ..
@@ -37,22 +37,20 @@ If you prefer not to use `proto-build.sh`:
    cp -r envoy_data_plane/src/envoy_data_plane_pb2/envoy plugins-adapter/src/
    ```
 
-   NOTE: This builds envoy protos in `src/envoy_data_plane_pb2/`. Copy the `envoy` directory.
-
 3. **Get XDS protobufs**
+
+   This [XDS repo](https://github.com/cncf/xds) contains python code for `validate`, `xds`, and `udpa`. Go to the `python` folder.
 
    ```sh
    git clone https://github.com/cncf/xds.git
    cp -rf xds/python/xds xds/python/validate xds/python/udpa plugins-adapter/src/
    ```
 
-   NOTE: This repo contains python code for `validate`, `xds`, and `udpa`. Go to `python` folder.
-
 4. **Install dependencies and run**
+
+Ensure by this point you have the `envoy`, `validate`, `xds`, `udpa` python protobuf folders in `src/` to run the external processor server (`server.py`).
 
    ```sh
    pip install -r requirements.txt
    python src/server.py
    ```
-
-You need `envoy`, `validate`, `xds`, `udpa` python protobuf folders in `src/` to run server.py
