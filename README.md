@@ -1,75 +1,49 @@
-An Envoy ext-proc to configure and invoke guardrails for MCP Gateway.
+# Plugins Adapter
+
+An Envoy external processor (ext-proc) for configuring and invoking guardrails in an Envoy-based gateway like [MCP Gateway](https://github.com/kagenti/mcp-gateway).
 
 ## Quick Install
 
-* Expects configured [kubectl](https://kubernetes.io/docs/reference/kubectl/) in cli
-* Use pre-built image to deploy
-    ```
-    git clone https://github.com/kagenti/plugins-adapter.git
-    cd plugins-adapter
-    make deploy_quay
-    ```
-
+### Prerequisites
+- [kubectl](https://kubernetes.io/docs/reference/kubectl/) configured in CLI
 
 ## Full Dev Build
 
-* Build protobufs
-	```
-	python3 -m venv .venv
-	source .venv/bin/activate
+1. **Build Protocol Buffers**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ./proto-build.sh
+   ```
 
-	./proto-build.sh
+2. **Verify** `src/` contains: `/envoy`, `/validate`, `/xds`, `/udpa`
 
-	```
-* Verify src folder contains `/envoy`,`/validate`,`/xds`,`/udpa`
-* Deploy to kind cluster
-	```
-	make all
-	``` 
+3. **Deploy to kind cluster**
+   ```bash
+   make all
+   ```
+
+See [detailed build instructions](./docs/build.md) for manual build steps.
 
 ## Configure Plugins
 
-* Update `resources/config/config.yaml` with list of plugins
-* `make all`
+Update `resources/config/config.yaml` with list of plugins:
 
-### Build proto step by step, instead of running proto-build.sh
-
-1. Install protoc. See instructions if [needed](https://betterproto.github.io/python-betterproto2/getting-started/).
-- Install the proto compiler and tools:
-```sh
-pip install -r requirements-proto.txt
-```
-2. Build the python `envoy` protobufs
-- Code to help pull and build the python code from proto files: `https://github.com/cetanu/envoy_data_plane.git`
-- Run: `python build.py`.
-NOTE: This will build the envoy protos in `src/envoy_data_plane_pb2/` Copy the `src/envoy_data_plane_pb2/envoy` directory to where you need it.
-```sh
-cd ..
-git clone git@github.com:cetanu/envoy_data_plane.git
-cd envoy_data_plane
-python build.py
-cd ..
-cp -r envoy_data_plane/src/envoy_data_plane_pb2/envoy plugins-adapter/src/
+```yaml
+plugins:
+  - name: my_plugin
+    path: ./plugins/my_plugin
+    enabled: true
 ```
 
-3. Get the python xds protobufs:
-```sh
-git clone https://github.com/cncf/xds.git
-cp -rf xds/python/xds xds/python/validate xds/python/udpa plugins-adapter/src/
-```
-NOTE: This repo contains the python code for `validate`, `xds`, and `udpa`. Go to folder `python`. Copy the needed folders or run
-setup.py to install.
+**Note:** See [plugins/examples](./plugins/examples/) for example plugins.
 
-4. In the end you need `envoy`, `validate`, `xds`, `udpa` python protobufs folders copied into `src` to run example server.py
-5. `pip install -r requirements.py`
-6. Run `python server.py`
-
-### Deploy to kind cluster
-```
-cd plugins-adapter
+Then deploy:
+```bash
 make all
 ```
 
-### Enable debug logs for mcp-gateway envoy routes if needed
-* From mcp-gateway folder:
-`make debug-envoy-impl`
+## Detailed Documentation
+
+- [Build Instructions](./docs/build.md) - Detailed protobuf build steps
+- [Deployment Guide](./docs/deployment.md) - Deployment and debugging
