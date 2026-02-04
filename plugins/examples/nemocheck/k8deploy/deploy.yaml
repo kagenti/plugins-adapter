@@ -29,10 +29,9 @@ spec:
     spec:
       containers:
         - name: nemocheck-plugin
-          # Built from Dockerfile: docker build -t nemocheck-plugin:latest .
           image: mcpgateway/nemocheck:0.1.0
           env:
-            - name: MODEL_NAME
+            - name: MODEL_NAME # Currently only for logging.
               value: "meta-llama/llama-3-3-70b-instruct"
             - name: CHECK_ENDPOINT
               value: "http://nemo-guardrails-service:8000/v1/guardrail/checks"

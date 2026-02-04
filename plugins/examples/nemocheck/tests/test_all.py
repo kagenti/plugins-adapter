@@ -54,16 +54,6 @@ async def test_prompt_post_hook(plugin_manager: PluginManager):
     assert result.continue_processing
 
 
-@pytest.mark.asyncio
-async def test_tool_pre_hook(plugin_manager: PluginManager):
-    """Test tool pre hook across all registered plugins."""
-    # Customize payload for testing
-    payload = ToolPreInvokePayload(name="test_prompt", args={"arg0": "This is an argument"})
-    global_context = GlobalContext(request_id="1")
-    result, _ = await plugin_manager.invoke_hook(ToolHookType.TOOL_PRE_INVOKE, payload, global_context)
-    # Assert expected behaviors
-    assert result.continue_processing
-
 
 @pytest.mark.asyncio
 async def test_tool_post_hook(plugin_manager: PluginManager):

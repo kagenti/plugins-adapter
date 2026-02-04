@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 log_level = os.getenv("LOGLEVEL", "INFO").upper()
 logger.setLevel(log_level)
 
-MODEL_NAME = os.getenv("NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct")
+MODEL_NAME = os.getenv("NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct")  # Currently only for logging.
 CHECK_ENDPOINT = os.getenv("CHECK_ENDPOINT", "http://nemo-guardrails-service:8000")
 
 
