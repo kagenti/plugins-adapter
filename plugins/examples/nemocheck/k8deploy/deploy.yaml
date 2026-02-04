@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nemocheck-plugin-service
+  namespace: istio-system
+spec:
+  selector:
+    app: nemocheck-plugin
+  ports:
+    - name: grpc
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nemocheck-plugin
+  namespace: istio-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nemocheck-plugin
+  template:
+    metadata:
+      labels:
+        app: nemocheck-plugin
+    spec:
+      containers:
+        - name: nemocheck-plugin
+          image: mcpgateway/nemocheck:0.1.0
+          env:
+            - name: MODEL_NAME # Currently only for logging.
+              value: "meta-llama/llama-3-3-70b-instruct"
+            - name: CHECK_ENDPOINT
+              value: "http://nemo-guardrails-service:8000/v1/guardrail/checks"
+            - name: PLUGINS_SERVER_HOST
+              value: "0.0.0.0"
+            - name: PLUGINS_ENABLED
+              value: "false"
+            - name: PLUGINS_CLI_COMPLETION  
+              value: "false"
+            - name: PLUGINS_CLI_MARKUP_MODE  
+              value: "rich"
+            - name: PLUGINS_CONFIG  
+              value: "./resources/plugins/config.yaml"
+            # - name: CHUK_MCP_CONFIG_PATH  
+              # value: "./resources/runtime/config.yaml"
+            - name: MCP_SSL_ENABLED  
+              value: "false"
+            - name: MCP_SSL_CERT_REQS  
+              value: "0"
+            - name: LOGLEVEL
+              value: "DEBUG"
+            - name: PLUGINS_TRANSPORT
+              value: "http"
+
+          ports:
+            - containerPort: 8000

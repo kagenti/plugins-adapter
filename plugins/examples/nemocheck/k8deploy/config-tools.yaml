@@ -1,0 +1,133 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nemo-config
+  namespace: istio-system
+data:
+  config.yaml: |
+    models:
+      - type: main
+        engine: openai
+        parameters:
+          openai_api_base: "http://0.0.0.0:4000"
+          model_name: "meta-llama/llama-3-3-70b-instruct"
+          api_key: "None"
+    
+    passthrough: true
+    
+    rails:
+      input:
+        flows:
+          - check forbidden words
+      output:
+        flows:
+          - check output length
+      tool_input:
+        flows:
+          - check tool response safety
+      tool_output:
+        flows:
+          - check tool call safety
+
+  rails.co: |
+    define flow check forbidden words
+      $result = execute check_forbidden_words
+
+      if $result == "blocked"
+        bot inform forbidden content
+        stop
+
+    define bot inform forbidden content
+      "I can't answer that question."
+
+    define flow check output length
+      $result = execute check_output_length
+
+      if $result == "blocked"
+        bot inform output too long
+        stop
+
+    define bot inform output too long
+      "Response too long."
+
+    define subflow check tool response safety
+      $safe = execute check_tool_response_safety(tool_message=$tool_message)
+
+      if $safe == "blocked"
+        bot inform unsafe tool response
+        abort
+
+    define bot inform unsafe tool response
+      "Tool response blocked: contains sensitive data."
+
+    define subflow check tool call safety
+      $safe = execute check_tool_call_safety(tool_calls=$tool_calls)
+
+      if $safe == "blocked"
+        bot inform unsafe tool call
+        abort
+
+    define bot inform unsafe tool call
+      "Tool call not allowed."
+
+  actions.py: |
+    from nemoguardrails.actions import action
+    import re
+
+    @action(is_system_action=True)
+    async def check_forbidden_words(context: dict = {}):
+        """Block forbidden topics."""
+        user_message = context.get("user_message", "").lower()
+        forbidden_words = ["chatgpt", "openai", "claude"]
+        
+        for word in forbidden_words:
+            if word in user_message:
+                return "blocked"
+        
+        return "allowed"
+
+    @action(is_system_action=True)
+    async def check_output_length(context: dict = {}):
+        """Block responses over 100 words."""
+        bot_msg = context.get("bot_message", "")
+        
+        if len(bot_msg.split()) > 100:
+            return "blocked"
+        
+        return "allowed"
+
+    @action(is_system_action=True)
+    async def check_tool_response_safety(tool_message: str = None, context: dict = None):
+        """Block credentials in tool responses."""
+        if tool_message is None:
+            tool_message = context.get("tool_message", "") if context else ""
+
+        if not tool_message:
+            return "allowed"
+
+        credential_patterns = [
+            r"password[:\s=]+\w+",
+            r"(?:api[_\s-]?key|apikey)[:\s=]+[\w-]+",
+            r"(?:token|bearer)[:\s=]+[\w.-]+",
+        ]
+
+        tool_message_lower = tool_message.lower()
+        for pattern in credential_patterns:
+            if re.search(pattern, tool_message_lower):
+                return "blocked"
+
+        return "allowed"
+
+    @action(is_system_action=True)
+    async def check_tool_call_safety(tool_calls=None, context=None):
+        """Allow list for tool execution."""
+        if tool_calls is None:
+            tool_calls = context.get("tool_calls", []) if context else []
+
+        allowed_tools = ["get_weather", "search_web", "get_time", "test2_hello_world", "slack_read_messaegs"]
+
+        for tool_call in tool_calls:
+            if tool_call.get("name", "") not in allowed_tools:
+                return "blocked"
+
+        return "allowed"
