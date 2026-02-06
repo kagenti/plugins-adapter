@@ -47,3 +47,4 @@ make all
 
 - [Build Instructions](./docs/build.md) - Detailed protobuf build steps
 - [Deployment Guide](./docs/deployment.md) - Deployment and debugging
+- [Architecture](./docs/architecture/) - System design and diagrams
