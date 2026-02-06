@@ -65,3 +65,9 @@ graph TD
     style E fill:#bbf,color:#000000
     style F fill:#bbf,color:#000000
 ```
+
+## System Architecture
+
+Plugin adapter example with plugins
+
+![System Architecture](./diagrams/plugin-deployment.svg)
