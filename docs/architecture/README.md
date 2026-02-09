@@ -58,13 +58,15 @@ graph TD
     D -->|7. Response| B
     B -->|8a. Forward to Upstream| G[MCP Tool Server]
     B -->|8b. Or Return Error| A
-    G -->|Response| B
-    B -->|Response| A
+    G -->|9. Response*| B
+    B -->|10. Response| A
 
     style D fill:#bbf,color:#000000
     style E fill:#bbf,color:#000000
     style F fill:#bbf,color:#000000
 ```
+
+**Note: Tool server responses (step 9) also flow through the Plugins Adapter ext-proc for validation/modification before returning to client. This is not explicitly illustrated in this tool request flow diagram.*
 
 ## System Architecture
 
