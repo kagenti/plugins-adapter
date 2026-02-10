@@ -34,6 +34,11 @@ logger.setLevel(log_level)
 MODEL_NAME = os.getenv("NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct")  # Currently only for logging.
 CHECK_ENDPOINT = os.getenv("CHECK_ENDPOINT", "http://nemo-guardrails-service:8000")
 
+
+headers = {
+    "Content-Type": "application/json",
+}
+
 class NemoCheckv2(Plugin):
     """Nemo Check Adapter."""
 

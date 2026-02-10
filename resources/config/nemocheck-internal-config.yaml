@@ -1,0 +1,30 @@
+# plugins/config.yaml - Main plugin configuration file
+plugins:
+  # Nemo Check Example
+  - name: "NemoCheckv2"
+    kind: "plugins.examples.nemocheckinternal.plugin.NemoCheckv2"
+    description: "Adapter for nemo check server"
+    version: "0.1.0"
+    author: "Julian Stephen"
+    hooks: ["tool_pre_invoke", "tool_post_invoke"]
+    tags: ["plugin", "pre-post"]
+    mode: "enforce"  # enforce | permissive | disabled
+    priority: 150
+    config:
+      checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"
+
+# Plugin directories to scan
+plugin_dirs:
+  - "plugins/native"           # Built-in plugins
+  - "plugins/custom"           # Custom organization plugins
+  - "/etc/mcpgateway/plugins"  # System-wide plugins
+  - "plugins/examples/nemo"    # Example Nemo guardrails plugins
+  - "plugins/examples/nemocheckinternal"    # Nemo Check Server plugins
+
+# Global plugin settings
+plugin_settings:
+  parallel_execution_within_band: true
+  plugin_timeout: 30
+  fail_on_plugin_error: false
+  enable_plugin_api: true
+  plugin_health_check_interval: 60
