@@ -24,6 +24,7 @@ from mcpgateway.plugins.framework import (
 
 import logging
 import os
+import requests
 
 # Initialize logging service first
 logger = logging.getLogger(__name__)
@@ -44,7 +45,8 @@ class NemoCheckv2(Plugin):
           config: the skill configuration
         """
         global CHECK_ENDPOINT
-        CHECK_ENDPOINT = config.get('checkserver_url',None)
+        logger.info(f"plugin config {config}")
+        CHECK_ENDPOINT = config.config.get('checkserver_url',None)
         if CHECK_ENDPOINT is None:
             CHECK_ENDPOINT = os.getenv("CHECK_ENDPOINT", "http://nemo-guardrails-service:8000")
         logger.info(f"checkserver at {config}:{CHECK_ENDPOINT}")

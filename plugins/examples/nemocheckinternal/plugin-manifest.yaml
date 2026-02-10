@@ -1,4 +1,5 @@
 description: "Nemo Check Adapter"
+name: NemoCheckv2
 author: "julianstephen"
 version: "0.1.0"
 available_hooks:
