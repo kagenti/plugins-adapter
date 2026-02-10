@@ -43,6 +43,11 @@ class NemoCheckv2(Plugin):
           logger: logger that the skill can make use of
           config: the skill configuration
         """
+        global CHECK_ENDPOINT
+        CHECK_ENDPOINT = config.get('checkserver_url',None)
+        if CHECK_ENDPOINT is None:
+            CHECK_ENDPOINT = os.getenv("CHECK_ENDPOINT", "http://nemo-guardrails-service:8000")
+        logger.info(f"checkserver at {config}:{CHECK_ENDPOINT}")
         super().__init__(config)
 
     async def prompt_pre_fetch(self, payload: PromptPrehookPayload, context: PluginContext) -> PromptPrehookResult:

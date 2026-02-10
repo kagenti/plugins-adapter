@@ -1,17 +1,4 @@
 plugins:
-  # Nemo example
-  - name: "NemoWrapperPlugin"
-    kind: "plugins.examples.nemo.nemo_wrapper_plugin.NemoWrapperPlugin"
-    description: "A simple Nemo PII detector"
-    version: "0.1.0"
-    author: "Evaline Ju"
-    hooks: ["tool_pre_invoke", "tool_post_invoke"]
-    tags: ["plugin", "pre-post"]
-    mode: "enforce"  # enforce | permissive | disabled
-    priority: 150
-    config:
-      foo: bar
-
   - name: "NemoCheckv2"
     kind: "plugins.examples.nemocheck-internal.nemocheckv2.plugin.NemoCheckv2"
     description: "Nemo Check Adapter"
