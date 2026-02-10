@@ -20,6 +20,7 @@ from mcpgateway.plugins.framework import (
     ToolPostInvokeResult,
     ToolPreInvokePayload,
     ToolPreInvokeResult,
+    PluginViolation,    
 )
 
 import logging
