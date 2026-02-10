@@ -1,26 +1,18 @@
 # plugins/config.yaml - Main plugin configuration file
 plugins:
+  - name: NemoCheck
+    kind: external
+    hooks: ["tool_pre_invoke", "tool_post_invoke"]    
+    mode: enforce
+    mcp:
+      proto: STREAMABLEHTTP
+      url: http://nemocheck-plugin-service:8000/mcp
+#      tls:
+#        certfile: /path/to/client-cert.pem
+#        keyfile: /path/to/client-key.pem
+#        ca_bundle: /path/to/ca-bundle.pem
+#        verify: false
 # Self-contained Search Replace Plugin
-  - name: "ReplaceBadWordsPlugin"
-    kind: "plugins.regex_filter.search_replace.SearchReplacePlugin"
-    description: "A plugin for finding and replacing words."
-    version: "0.1.0"
-    author: "Teryl Taylor"
-    hooks: ["prompt_pre_fetch", "prompt_post_fetch", "tool_pre_invoke", "tool_post_invoke"]
-    tags: ["plugin", "transformer", "regex", "search-and-replace", "pre-post"]
-    mode: "enforce"  # enforce | permissive | disabled
-    priority: 150
-    conditions:
-      # Apply to specific tools/servers
-      - prompts: ["test_prompt"]
-        server_ids: []  # Apply to all servers
-        tenant_ids: []  # Apply to all tenants
-    config:
-      words:
-        - search: crap
-          replace: crud
-        - search: crud
-          replace: yikes
 
 # Plugin directories to scan
 plugin_dirs:
