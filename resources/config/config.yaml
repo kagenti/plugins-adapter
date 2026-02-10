@@ -22,19 +22,28 @@ plugins:
           replace: crud
         - search: crud
           replace: yikes
+
+  # Nemo example
+  - name: "NemoWrapperPlugin"
+    kind: "plugins.examples.nemo.nemo_wrapper_plugin.NemoWrapperPlugin"
+    description: "A simple Nemo PII detector"
+    version: "0.1.0"
+    author: "Evaline Ju"
+    hooks: ["tool_pre_invoke", "tool_post_invoke"]
+    tags: ["plugin", "pre-post"]
+    mode: "enforce"  # enforce | permissive | disabled
+    priority: 150
+    config:
+      foo: bar
+
   # Nemo Check Example
   - name: "NemoCheckv2"
     kind: "plugins.examples.nemocheckinternal.plugin.NemoCheckv2"
     description: "Adapter for nemo check server"
     version: "0.1.0"
     author: "Julian Stephen"
-    hooks: ["tool_pre_invoke", "tool_post_invoke"]
-    tags: ["plugin", "pre-post"]
-    mode: "enforce"  # enforce | permissive | disabled
-    priority: 150
     config:
-      checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"
-
+      checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"    
 # Plugin directories to scan
 plugin_dirs:
   - "plugins/native"           # Built-in plugins
