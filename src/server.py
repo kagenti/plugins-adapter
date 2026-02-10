@@ -350,37 +350,46 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         logger.debug("Response body not UTF-8; skipping")
                     else:
                         logger.info(f"!!!Text before split: {text.split('\n')}")
-                        # Assume streamable HTTP transport, not SSE - TODO: do we need to check?
-                        lines = [
-                            line.strip()
-                            for line in text.split("\n")
-                            if line.strip()
-                        ]
 
-                        if lines:
-                            try:
-                                # Parse the JSON-RPC response
-                                data = json.loads(lines[0])
-                                logger.info(f"!!!Parsed response: {data}")
+                        # Handle both SSE format and plain JSON-RPC format
+                        data = None
 
-                                # Check if this is a tool result response
-                                if (
-                                    "result" in data
-                                    and "content" in data["result"]
-                                ):
-                                    body_resp = await getToolPostInvokeResponse(
-                                        data
-                                    )
-                                else:
-                                    body_resp = ep.ProcessingResponse(
-                                        response_body=ep.BodyResponse(
-                                            response=ep.CommonResponse()
-                                        )
-                                    )
-                            except json.JSONDecodeError as e:
-                                logger.error(
-                                    f"Failed to parse response JSON: {e}"
-                                )
+                        # Check if this is SSE format (starts with "event:" or "data:")
+                        if text.strip().startswith(("event:", "data:")):
+                            # Parse SSE format
+                            lines = text.split("\n")
+                            for line in lines:
+                                line = line.strip()
+                                if line.startswith("data:"):
+                                    json_str = line[5:].strip()  # Remove "data:" prefix
+                                    try:
+                                        data = json.loads(json_str)
+                                        break
+                                    except json.JSONDecodeError:
+                                        continue
+                        else:
+                            # Parse plain JSON-RPC format
+                            lines = [
+                                line.strip()
+                                for line in text.split("\n")
+                                if line.strip()
+                            ]
+                            if lines:
+                                try:
+                                    data = json.loads(lines[0])
+                                except json.JSONDecodeError as e:
+                                    logger.error(f"Failed to parse JSON: {e}")
+
+                        if data:
+                            logger.info(f"!!!Parsed response: {data}")
+
+                            # Check if this is a tool result response
+                            if (
+                                "result" in data
+                                and "content" in data["result"]
+                            ):
+                                body_resp = await getToolPostInvokeResponse(data)
+                            else:
                                 body_resp = ep.ProcessingResponse(
                                     response_body=ep.BodyResponse(
                                         response=ep.CommonResponse()
