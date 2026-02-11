@@ -129,7 +129,6 @@ class NemoCheck(Plugin):
                 reason="Tool Check Unavailable", description="Tool arguments check server returned error:", code=f"checkserver_http_status_code:{response.status_code}", details={}
             )
             result = ToolPreInvokeResult(continue_processing=False, violation=violation)
-        logger.info(response)
 
         return result
 
