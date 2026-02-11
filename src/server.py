@@ -142,7 +142,7 @@ async def getToolPostInvokeResponse(body):
         error_body = {
             "jsonrpc": body["jsonrpc"],
             "id": body["id"],
-            "error": {"code": -32000, "message": "No go - Tool args forbidden"},
+            "error": {"code": -32000, "message": "Tool response forbidden"},
         }
         body_resp = ep.ProcessingResponse(
             immediate_response=ep.ImmediateResponse(
@@ -339,7 +339,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
             elif (
                 request.HasField("response_body") and request.response_body.body
             ):
-                logger.info(f"!!!In Process for response body: {request}")
+                logger.debug(f"Processing response body: {request}")
                 chunk = request.response_body.body
                 resp_body_buf.extend(chunk)
 
@@ -349,7 +349,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                     except UnicodeDecodeError:
                         logger.debug("Response body not UTF-8; skipping")
                     else:
-                        logger.info(f"!!!Text before split: {text.split('\n')}")
+                        logger.debug(f"Response body text: {text.split('\n')}")
 
                         # Handle both SSE format and plain JSON-RPC format
                         data = None
@@ -381,7 +381,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                                     logger.error(f"Failed to parse JSON: {e}")
 
                         if data:
-                            logger.info(f"!!!Parsed response: {data}")
+                            logger.debug(f"Parsed response data: {data}")
 
                             # Check if this is a tool result response
                             if (
