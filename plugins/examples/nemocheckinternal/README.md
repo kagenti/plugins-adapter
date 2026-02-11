@@ -18,21 +18,21 @@
 1. Update `${project_root}/resources/config/config.yaml`. Sample file [here](/resources/config/nemocheck-internal-config.yaml)
 
     ```
-# plugins/config.yaml - Main plugin configuration file
-plugins:
-  - name: "NemoCheckv2"
-    kind: "plugins.examples.nemocheckinternal.plugin.NemoCheckv2"
-    description: "Adapter for nemo check server"
-    version: "0.1.0"
-    config:
-      checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"    
-# Plugin directories to scan
-plugin_dirs:
-  - "plugins/examples/nemocheckinternal"    # Nemo Check Server plugins
+    # plugins/config.yaml - Main plugin configuration file
+    plugins:
+      - name: "NemoCheckv2"
+        kind: "plugins.examples.nemocheckinternal.plugin.NemoCheckv2"
+        description: "Adapter for nemo check server"
+        version: "0.1.0"
+        config:
+          checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"    
+    # Plugin directories to scan
+    plugin_dirs:
+      - "plugins/examples/nemocheckinternal"    # Nemo Check Server plugins
     ```
 
-1. Ensure plugins->config->checkserver_url points to the correct service
-3. Start plugin adapter
+1. In `config.yaml` ensure key `plugins.config.checkserver_url` points to the correct service
+1. Start plugin adapter
 
 # Test
 
