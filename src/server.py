@@ -344,6 +344,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                 resp_body_buf.extend(chunk)
 
                 if getattr(request.response_body, "end_of_stream", False):
+                    # End of stream reached - process complete buffered response
                     try:
                         text = resp_body_buf.decode("utf-8")
                     except UnicodeDecodeError:
@@ -403,6 +404,16 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                             )
                         yield body_resp
                     resp_body_buf.clear()
+                else:
+                    # Intermediate chunk - buffer only, don't process yet
+                    # TODO: how should this be handled?
+                    logger.debug(f"Buffering intermediate chunk ({len(chunk)} bytes), waiting for end_of_stream")
+                    # Yield empty response to acknowledge chunk receipt
+                    yield ep.ProcessingResponse(
+                        response_body=ep.BodyResponse(
+                            response=ep.CommonResponse()
+                        )
+                    )
             # ----------------------------------------------------------------
             # Response Body Processing (No body field)
             # ----------------------------------------------------------------
