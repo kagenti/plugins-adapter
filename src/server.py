@@ -153,7 +153,9 @@ async def getToolPostInvokeResponse(body):
                             core.HeaderValueOption(
                                 header=core.HeaderValue(
                                     key="content-type",
-                                    raw_value="application/json".encode("utf-8"),
+                                    raw_value="application/json".encode(
+                                        "utf-8"
+                                    ),
                                 )
                             ),
                             core.HeaderValueOption(
@@ -350,7 +352,9 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
 
                 # Check for end of stream (regardless of whether this chunk has content)
                 if getattr(request.response_body, "end_of_stream", False):
-                    logger.debug("End of stream reached, processing complete buffered response")
+                    logger.debug(
+                        "End of stream reached, processing complete buffered response"
+                    )
 
                     # Process buffered content if any
                     if resp_body_buf:
@@ -364,7 +368,8 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                                 )
                             )
                         else:
-                            logger.debug(f"Response body text: {text.split('\n')}")
+                            lines = text.split("\n")
+                            logger.debug(f"Response body text: {lines}")
 
                             # Handle both SSE format and plain JSON-RPC format
                             data = None
@@ -376,8 +381,12 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                                 for line in lines:
                                     line = line.strip()
                                     if line.startswith("data:"):
-                                        json_str = line[5:].strip()  # Remove "data:" prefix
-                                        logger.debug(f"Extracted JSON from SSE: {json_str}")
+                                        json_str = line[
+                                            5:
+                                        ].strip()  # Remove "data:" prefix
+                                        logger.debug(
+                                            f"Extracted JSON from SSE: {json_str}"
+                                        )
                                         try:
                                             data = json.loads(json_str)
                                             break
@@ -394,7 +403,9 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                                     try:
                                         data = json.loads(lines[0])
                                     except json.JSONDecodeError as e:
-                                        logger.error(f"Failed to parse JSON: {e}")
+                                        logger.error(
+                                            f"Failed to parse JSON: {e}"
+                                        )
 
                             if data:
                                 logger.debug(f"Parsed response data: {data}")
@@ -404,8 +415,12 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                                     "result" in data
                                     and "content" in data["result"]
                                 ):
-                                    logger.info("Invoking tool post-invoke hook")
-                                    body_resp = await getToolPostInvokeResponse(data)
+                                    logger.info(
+                                        "Invoking tool post-invoke hook"
+                                    )
+                                    body_resp = await getToolPostInvokeResponse(
+                                        data
+                                    )
                                 else:
                                     body_resp = ep.ProcessingResponse(
                                         response_body=ep.BodyResponse(
@@ -413,7 +428,9 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                                         )
                                     )
                             else:
-                                logger.warning("No data parsed from response body")
+                                logger.warning(
+                                    "No data parsed from response body"
+                                )
                                 body_resp = ep.ProcessingResponse(
                                     response_body=ep.BodyResponse(
                                         response=ep.CommonResponse()
@@ -432,7 +449,9 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                     resp_body_buf.clear()
                 else:
                     # Intermediate chunk - acknowledge but don't process yet
-                    logger.debug(f"Buffering intermediate chunk, waiting for end_of_stream")
+                    logger.debug(
+                        "Buffering intermediate chunk, waiting for end_of_stream"
+                    )
                     yield ep.ProcessingResponse(
                         response_body=ep.BodyResponse(
                             response=ep.CommonResponse()

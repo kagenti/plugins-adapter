@@ -58,13 +58,36 @@ async def test_prompt_pre_fetch(plugin, context):
 @pytest.mark.parametrize(
     "status_code,response_data,expected_continue,has_violation",
     [
-        (200, {"status": "success", "rails_status": {"detect senstitive data": {"status": "success"}}}, True, False),
-        (200, {"status": "blocked", "rails_status": {"detect hap": {"status": "blocked"}}}, False, True),
+        (
+            200,
+            {
+                "status": "success",
+                "rails_status": {
+                    "detect senstitive data": {"status": "success"}
+                },
+            },
+            True,
+            False,
+        ),
+        (
+            200,
+            {
+                "status": "blocked",
+                "rails_status": {"detect hap": {"status": "blocked"}},
+            },
+            False,
+            True,
+        ),
         (503, None, False, True),
     ],
 )
 async def test_tool_pre_invoke_scenarios(
-    plugin, context, status_code, response_data, expected_continue, has_violation
+    plugin,
+    context,
+    status_code,
+    response_data,
+    expected_continue,
+    has_violation,
 ):
     """Test tool_pre_invoke with various scenarios."""
     payload = ToolPreInvokePayload(
@@ -86,13 +109,36 @@ async def test_tool_pre_invoke_scenarios(
 @pytest.mark.parametrize(
     "status_code,response_data,expected_continue,has_violation",
     [
-        (200, {"status": "success", "rails_status": {"detect senstitive data": {"status": "success"}}}, True, False),
-        (200, {"status": "blocked", "rails_status": {"detect hap": {"status": "blocked"}}}, False, True),
+        (
+            200,
+            {
+                "status": "success",
+                "rails_status": {
+                    "detect senstitive data": {"status": "success"}
+                },
+            },
+            True,
+            False,
+        ),
+        (
+            200,
+            {
+                "status": "blocked",
+                "rails_status": {"detect hap": {"status": "blocked"}},
+            },
+            False,
+            True,
+        ),
         (500, None, False, True),
     ],
 )
 async def test_tool_post_invoke_http_scenarios(
-    plugin, context, status_code, response_data, expected_continue, has_violation
+    plugin,
+    context,
+    status_code,
+    response_data,
+    expected_continue,
+    has_violation,
 ):
     """Test tool_post_invoke with various HTTP response scenarios."""
     payload = ToolPostInvokePayload(
@@ -118,7 +164,9 @@ async def test_tool_post_invoke_http_scenarios(
         ({"output": "value"}, True),  # No content key
     ],
 )
-async def test_tool_post_invoke_passthrough_content_cases(plugin, context, result_data, should_continue):
+async def test_tool_post_invoke_passthrough_content_cases(
+    plugin, context, result_data, should_continue
+):
     """Test tool_post_invoke no/empty content cases that do not flag."""
     payload = ToolPostInvokePayload(name="test_tool", result=result_data)
     result = await plugin.tool_post_invoke(payload, context)
@@ -141,7 +189,9 @@ async def test_tool_post_invoke_concatenates_text(plugin, context):
 
     with patch(
         "nemocheck.plugin.requests.post",
-        return_value=mock_http_response(200, {"status": "success", "rails_status": {}}),
+        return_value=mock_http_response(
+            200, {"status": "success", "rails_status": {}}
+        ),
     ) as mock_post:
         result = await plugin.tool_post_invoke(payload, context)
 
@@ -165,7 +215,9 @@ async def test_tool_post_invoke_filters_non_text(plugin, context):
 
     with patch(
         "nemocheck.plugin.requests.post",
-        return_value=mock_http_response(200, {"status": "success", "rails_status": {}}),
+        return_value=mock_http_response(
+            200, {"status": "success", "rails_status": {}}
+        ),
     ) as mock_post:
         result = await plugin.tool_post_invoke(payload, context)
 
@@ -182,9 +234,10 @@ async def test_tool_post_invoke_fails_open_on_exception(plugin, context):
         result={"content": [{"type": "text", "text": "content"}]},
     )
 
-    with patch("nemocheck.plugin.requests.post", side_effect=Exception("Network error")):
+    with patch(
+        "nemocheck.plugin.requests.post", side_effect=Exception("Network error")
+    ):
         result = await plugin.tool_post_invoke(payload, context)
 
     assert result.continue_processing
     assert result.violation is None
-
