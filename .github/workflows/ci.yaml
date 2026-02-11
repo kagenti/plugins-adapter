@@ -47,8 +47,9 @@ jobs:
         run: |
           echo "Running nemocheck ext plugin tests.."
           uv sync --all-groups
+
+      # Tests
       - name: Run nemocheck external plugin tests
         working-directory: ./plugins/examples/nemocheck
-        run: uv run pytest tests 
-          
-      # - name: Test
+        run: uv run pytest tests
+
