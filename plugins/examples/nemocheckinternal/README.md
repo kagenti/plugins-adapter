@@ -15,15 +15,17 @@
 ## Installation
 
 1. Find url of nemo-check-server service. E.g., from svc in `server.yaml`
-1. Update `${project_root}/resources/config/config.yaml`. Sample file [here](/resources/config/nemocheck-internal-config.yaml)
+1. Update `${project_root}/resources/config/config.yaml`. Add the blob below, merge if other `plugin`s or `plugin_dir`s already exists. Sample file [here](/resources/config/nemocheck-internal-config.yaml)
 
-    ```
+    ```yaml
     # plugins/config.yaml - Main plugin configuration file
     plugins:
       - name: "NemoCheckv2"
         kind: "plugins.examples.nemocheckinternal.plugin.NemoCheckv2"
         description: "Adapter for nemo check server"
-        version: "0.1.0"
+        version: "0.1.0"        
+        hooks: ["tool_pre_invoke", "tool_post_invoke"]
+        mode: "enforce"  # enforce | permissive | disabled
         config:
           checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"    
     # Plugin directories to scan
