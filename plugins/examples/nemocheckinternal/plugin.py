@@ -58,7 +58,7 @@ class NemoCheckv2(Plugin):
         logger.info(f"plugin config {config}")
         endpoint = config.config.get("checkserver_url", None)
         if endpoint is not None:
-            CHECK_ENDPOINT =  endpoint
+            CHECK_ENDPOINT = endpoint
         logger.info(f"checkserver at {config}:{CHECK_ENDPOINT}")
         super().__init__(config)
 
