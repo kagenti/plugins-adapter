@@ -230,6 +230,85 @@ async def getPromptPreFetchResponse(body):
 
 
 # ============================================================================
+# RESPONSE BODY PROCESSING HELPER
+# ============================================================================
+
+
+async def process_response_body_buffer(buffer: bytearray):
+    """Process buffered response body content.
+
+    Parses the buffered content (supporting both SSE and plain JSON-RPC formats),
+    and invokes the tool post-invoke hook if it's a tool result.
+
+    Args:
+        buffer: The accumulated response body bytes
+
+    Returns:
+        ProcessingResponse to send back to Envoy
+    """
+    if not buffer:
+        # Empty buffer at end of stream
+        logger.debug("End of stream with empty buffer")
+        return ep.ProcessingResponse(
+            response_body=ep.BodyResponse(response=ep.CommonResponse())
+        )
+
+    try:
+        text = buffer.decode("utf-8")
+    except UnicodeDecodeError:
+        logger.debug("Response body not UTF-8; skipping")
+        return ep.ProcessingResponse(
+            response_body=ep.BodyResponse(response=ep.CommonResponse())
+        )
+
+    lines = text.split("\n")
+    logger.debug(f"Response body text: {lines}")
+
+    # Handle both SSE format and plain JSON-RPC format
+    data = None
+
+    # Check if this is SSE format (starts with "event:" or "data:")
+    if text.strip().startswith(("event:", "data:")):
+        # Parse SSE format
+        lines = text.split("\n")
+        for line in lines:
+            line = line.strip()
+            if line.startswith("data:"):
+                json_str = line[5:].strip()  # Remove "data:" prefix
+                logger.debug(f"Extracted JSON from SSE: {json_str}")
+                try:
+                    data = json.loads(json_str)
+                    break
+                except json.JSONDecodeError:
+                    continue
+    else:
+        # Parse plain JSON-RPC format
+        lines = [line.strip() for line in text.split("\n") if line.strip()]
+        if lines:
+            try:
+                data = json.loads(lines[0])
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON: {e}")
+
+    if data:
+        logger.debug(f"Parsed response data: {data}")
+
+        # Check if this is a tool result response
+        if "result" in data and "content" in data["result"]:
+            logger.info("Invoking tool post-invoke hook")
+            return await getToolPostInvokeResponse(data)
+        else:
+            return ep.ProcessingResponse(
+                response_body=ep.BodyResponse(response=ep.CommonResponse())
+            )
+    else:
+        logger.warning("No data parsed from response body")
+        return ep.ProcessingResponse(
+            response_body=ep.BodyResponse(response=ep.CommonResponse())
+        )
+
+
+# ============================================================================
 # ENVOY EXTERNAL PROCESSOR SERVICER
 # ============================================================================
 
@@ -356,95 +435,10 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         "End of stream reached, processing complete buffered response"
                     )
 
-                    # Process buffered content if any
-                    if resp_body_buf:
-                        try:
-                            text = resp_body_buf.decode("utf-8")
-                        except UnicodeDecodeError:
-                            logger.debug("Response body not UTF-8; skipping")
-                            body_resp = ep.ProcessingResponse(
-                                response_body=ep.BodyResponse(
-                                    response=ep.CommonResponse()
-                                )
-                            )
-                        else:
-                            lines = text.split("\n")
-                            logger.debug(f"Response body text: {lines}")
-
-                            # Handle both SSE format and plain JSON-RPC format
-                            data = None
-
-                            # Check if this is SSE format (starts with "event:" or "data:")
-                            if text.strip().startswith(("event:", "data:")):
-                                # Parse SSE format
-                                lines = text.split("\n")
-                                for line in lines:
-                                    line = line.strip()
-                                    if line.startswith("data:"):
-                                        json_str = line[
-                                            5:
-                                        ].strip()  # Remove "data:" prefix
-                                        logger.debug(
-                                            f"Extracted JSON from SSE: {json_str}"
-                                        )
-                                        try:
-                                            data = json.loads(json_str)
-                                            break
-                                        except json.JSONDecodeError:
-                                            continue
-                            else:
-                                # Parse plain JSON-RPC format
-                                lines = [
-                                    line.strip()
-                                    for line in text.split("\n")
-                                    if line.strip()
-                                ]
-                                if lines:
-                                    try:
-                                        data = json.loads(lines[0])
-                                    except json.JSONDecodeError as e:
-                                        logger.error(
-                                            f"Failed to parse JSON: {e}"
-                                        )
-
-                            if data:
-                                logger.debug(f"Parsed response data: {data}")
-
-                                # Check if this is a tool result response
-                                if (
-                                    "result" in data
-                                    and "content" in data["result"]
-                                ):
-                                    logger.info(
-                                        "Invoking tool post-invoke hook"
-                                    )
-                                    body_resp = await getToolPostInvokeResponse(
-                                        data
-                                    )
-                                else:
-                                    body_resp = ep.ProcessingResponse(
-                                        response_body=ep.BodyResponse(
-                                            response=ep.CommonResponse()
-                                        )
-                                    )
-                            else:
-                                logger.warning(
-                                    "No data parsed from response body"
-                                )
-                                body_resp = ep.ProcessingResponse(
-                                    response_body=ep.BodyResponse(
-                                        response=ep.CommonResponse()
-                                    )
-                                )
-                    else:
-                        # Empty buffer at end of stream
-                        logger.debug("End of stream with empty buffer")
-                        body_resp = ep.ProcessingResponse(
-                            response_body=ep.BodyResponse(
-                                response=ep.CommonResponse()
-                            )
-                        )
-
+                    # Process the buffered content
+                    body_resp = await process_response_body_buffer(
+                        resp_body_buf
+                    )
                     yield body_resp
                     resp_body_buf.clear()
                 else:

@@ -6,6 +6,7 @@ These tests use dynamic import and mocking to avoid proto dependencies.
 # Standard
 from unittest.mock import AsyncMock, Mock, MagicMock
 import sys
+import json
 
 # Third-Party
 import pytest
@@ -77,6 +78,33 @@ def sample_tool_result_body():
             "content": [{"type": "text", "text": "Tool execution result"}]
         },
     }
+
+
+def setup_response_mocks(mock_envoy_modules):
+    """Setup common response mocks."""
+    mock_envoy_modules["ep"].ProcessingResponse.return_value = MagicMock()
+    mock_envoy_modules["ep"].BodyResponse.return_value = MagicMock()
+    mock_envoy_modules["ep"].CommonResponse.return_value = MagicMock()
+
+
+def setup_manager_with_result(mock_manager, continue_processing=True):
+    """Setup mock manager with a tool post-invoke result."""
+    mock_result = ToolPostInvokeResult(continue_processing=continue_processing)
+    mock_manager.invoke_hook.return_value = (mock_result, None)
+    return mock_manager
+
+
+def verify_payload_content(payload, expected_result, expected_text):
+    """Verify payload contains expected content."""
+    assert isinstance(payload, ToolPostInvokePayload)
+    assert payload.result == expected_result
+    assert payload.result["content"][0]["type"] == "text"
+    assert payload.result["content"][0]["text"] == expected_text
+
+
+# ============================================================================
+# Tool Post-Invoke Hook Tests
+# ============================================================================
 
 
 @pytest.mark.asyncio
@@ -230,3 +258,166 @@ async def test_getToolPostInvokeResponse_multiple_content_items(
     assert payload.result["content"][0]["text"] == "First item"
     assert payload.result["content"][1]["text"] == "Second item"
     assert payload.result["content"][2]["url"] == "http://example.com/img.png"
+
+
+# ============================================================================
+# Response Body Processing Tests
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_process_response_body_buffer_with_tool_result(
+    mock_envoy_modules, mock_manager
+):
+    """Test process_response_body_buffer with a tool result."""
+    setup_response_mocks(mock_envoy_modules)
+    import src.server
+
+    setup_manager_with_result(mock_manager)
+    src.server.manager = mock_manager
+
+    tool_result = {
+        "jsonrpc": "2.0",
+        "id": "test-123",
+        "result": {"content": [{"type": "text", "text": "Result"}]},
+    }
+    buffer = bytearray(json.dumps(tool_result).encode("utf-8"))
+    response = await src.server.process_response_body_buffer(buffer)
+
+    assert mock_manager.invoke_hook.called
+    payload = mock_manager.invoke_hook.call_args[0][1]
+    verify_payload_content(payload, tool_result["result"], "Result")
+    # Verify ProcessingResponse was returned
+    assert response is not None
+
+
+@pytest.mark.asyncio
+async def test_process_response_body_buffer_with_sse_format(
+    mock_envoy_modules, mock_manager
+):
+    """Test process_response_body_buffer with SSE formatted content."""
+    setup_response_mocks(mock_envoy_modules)
+    import src.server
+
+    setup_manager_with_result(mock_manager)
+    src.server.manager = mock_manager
+
+    tool_result = {
+        "jsonrpc": "2.0",
+        "id": "test-sse",
+        "result": {"content": [{"type": "text", "text": "SSE data"}]},
+    }
+    sse_body = f"event: message\ndata: {json.dumps(tool_result)}\n\n"
+    buffer = bytearray(sse_body.encode("utf-8"))
+    response = await src.server.process_response_body_buffer(buffer)
+
+    assert mock_manager.invoke_hook.called
+    payload = mock_manager.invoke_hook.call_args[0][1]
+    verify_payload_content(payload, tool_result["result"], "SSE data")
+    # Verify ProcessingResponse was returned
+    assert response is not None
+
+
+@pytest.mark.asyncio
+async def test_process_response_body_buffer_empty(
+    mock_envoy_modules, mock_manager
+):
+    """Test process_response_body_buffer with empty buffer."""
+    setup_response_mocks(mock_envoy_modules)
+    import src.server
+
+    src.server.manager = mock_manager
+    response = await src.server.process_response_body_buffer(bytearray())
+
+    # Verify ProcessingResponse was returned
+    assert response is not None
+    assert not mock_manager.invoke_hook.called, (
+        "Tool post-invoke hook should not be called for empty buffer"
+    )
+
+
+@pytest.mark.asyncio
+async def test_process_response_body_buffer_non_tool_result(
+    mock_envoy_modules, mock_manager
+):
+    """Test process_response_body_buffer with non-tool result (error response)."""
+    setup_response_mocks(mock_envoy_modules)
+    import src.server
+
+    src.server.manager = mock_manager
+
+    error_response = {
+        "jsonrpc": "2.0",
+        "id": "test-error",
+        "error": {"code": -32000, "message": "Error"},
+    }
+    buffer = bytearray(json.dumps(error_response).encode("utf-8"))
+    response = await src.server.process_response_body_buffer(buffer)
+
+    # Verify ProcessingResponse was returned
+    assert response is not None
+    assert not mock_manager.invoke_hook.called, (
+        "Tool post-invoke hook should not be called for error responses"
+    )
+
+
+@pytest.mark.asyncio
+async def test_process_response_body_buffer_multiple_chunks_scenario(
+    mock_envoy_modules, mock_manager
+):
+    """Test buffering: content in chunks, then empty end_of_stream chunk.
+
+    Simulates: chunk1 (content) + chunk2 (content) + chunk3 (empty, end_of_stream).
+    """
+    setup_response_mocks(mock_envoy_modules)
+    import src.server
+
+    setup_manager_with_result(mock_manager)
+    src.server.manager = mock_manager
+
+    tool_result = {
+        "jsonrpc": "2.0",
+        "id": "test-multi-chunk",
+        "result": {"content": [{"type": "text", "text": "Multi chunk data"}]},
+    }
+    body_bytes = json.dumps(tool_result).encode("utf-8")
+
+    # Simulate buffering: chunk1 + chunk2 + empty chunk
+    buffer = bytearray()
+    buffer.extend(body_bytes[:25])  # Chunk 1
+    buffer.extend(body_bytes[25:])  # Chunk 2
+    buffer.extend(b"")  # Chunk 3 (empty, triggers processing)
+
+    response = await src.server.process_response_body_buffer(buffer)
+
+    assert mock_manager.invoke_hook.called
+    payload = mock_manager.invoke_hook.call_args[0][1]
+    verify_payload_content(payload, tool_result["result"], "Multi chunk data")
+    # Verify ProcessingResponse was returned
+    assert response is not None
+
+
+@pytest.mark.asyncio
+async def test_process_response_body_buffer_single_chunk_with_end_of_stream(
+    mock_envoy_modules, mock_manager
+):
+    """Test buffering: all content in one chunk with end_of_stream."""
+    setup_response_mocks(mock_envoy_modules)
+    import src.server
+
+    setup_manager_with_result(mock_manager)
+    src.server.manager = mock_manager
+
+    tool_result = {
+        "jsonrpc": "2.0",
+        "id": "test-single",
+        "result": {"content": [{"type": "text", "text": "Single chunk"}]},
+    }
+    buffer = bytearray(json.dumps(tool_result).encode("utf-8"))
+    response = await src.server.process_response_body_buffer(buffer)
+
+    assert mock_manager.invoke_hook.called
+    payload = mock_manager.invoke_hook.call_args[0][1]
+    verify_payload_content(payload, tool_result["result"], "Single chunk")
+    # Verify ProcessingResponse was returned
+    assert response is not None
