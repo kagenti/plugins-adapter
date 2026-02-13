@@ -37,7 +37,7 @@ MODEL_NAME = os.getenv(
     "NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct"
 )  # Currently only for logging.
 DEFAULT_CHECK_ENDPOINT = os.getenv(
-    "CHECK_ENDPOINT", "http://nemo-guardrails-service:8000"
+    "CHECK_ENDPOINT", "http://nemo-guardrails-service:8000/v1/guardrail/checks"
 )
 HEADERS = {
     "Content-Type": "application/json",
@@ -55,9 +55,14 @@ class NemoCheck(Plugin):
         """
         super().__init__(config)
         # Allow config to override the endpoint
-        self.check_endpoint = config.config.get(
-            "checkserver_url", DEFAULT_CHECK_ENDPOINT
-        )
+        # Handle case where config.config might be None or empty
+        if config.config and isinstance(config.config, dict):
+            self.check_endpoint = config.config.get(
+                "checkserver_url", DEFAULT_CHECK_ENDPOINT
+            )
+        else:
+            self.check_endpoint = DEFAULT_CHECK_ENDPOINT
+            logger.warning("Plugin config is empty or invalid, using default endpoint")
         logger.info(f"Nemo Check endpoint: {self.check_endpoint}")
 
     async def prompt_pre_fetch(
