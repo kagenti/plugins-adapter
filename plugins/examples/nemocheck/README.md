@@ -4,16 +4,15 @@ This directory contains the core `NemoCheck` plugin implementation used by both 
 
 ## Prerequisites: Nemo-check server
  * Refer to [orignal repo](https://github.com/m-misiura/demos/tree/main/nemo_openshift/guardrail-checks/deployment) for full instructions
- * Instructions adpated for mcpgateway kind cluster to work with an llm proxy routing to some open ai compatable backend below
+ * Instructions are adapted for the `mcp-gateway` kind cluster to work with an LLM proxy routing to an OpenAI-compatible backend below:
 
-   ```bash
-	docker pull quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1
-	kind load docker-image quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1 --name mcp-gateway
-    cd plugins-adapter/plugins/examples/nemocheck/k8deploy
-	kubectl apply -f config-tools.yaml
-	kubectl apply -f server.yaml
+```bash
+docker pull quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1
+kind load docker-image quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1 --name mcp-gateway
+cd plugins-adapter/plugins/examples/nemocheck/k8deploy
+make deploy
+```
 
-   ```
 ## Installation
 
 1. Find url of nemo-check-server service. E.g., from svc in `server.yaml`
@@ -23,7 +22,7 @@ This directory contains the core `NemoCheck` plugin implementation used by both 
     # plugins/config.yaml - Main plugin configuration file
     plugins:
       - name: "NemoCheck"
-        kind: "plugins.examples.nemocheck.nemocheck.plugin.NemoCheck"
+        kind: "plugins.examples.nemocheck.plugin.NemoCheck"
         description: "Adapter for nemo check server"
         version: "0.1.0"
         hooks: ["tool_pre_invoke", "tool_post_invoke"]
@@ -38,46 +37,56 @@ This directory contains the core `NemoCheck` plugin implementation used by both 
 1. In `config.yaml` ensure key `plugins.config.checkserver_url` points to the correct service
 1. Start plugin adapter
 
-## Plugin Development
-
-To install dependencies with dev packages (required for linting and testing):
-
-```bash
-make install-dev
-```
-
-Alternatively, you can also install it in editable mode:
-
-```bash
-make install-editable
-```
-
-## Setting up the development environment
-
-1. Copy .env.template .env
-2. Enable plugins in `.env`
-
 ## Testing
 
 Test modules are created under the `tests` directory.
 
-To run all tests, use the following command:
+To run all tests:
 
 ```bash
-make test
+python -m pytest tests/ -v
 ```
 
 **Note:** To enable logging, set `log_cli = true` in `tests/pytest.ini`.
 
-## Code Linting
+## Test with MCP inspector
+ * Add allowed tools to `plugins-adapter/plugins/examples/nemocheck/k8deploy/config-tools.yaml#check_tool_call_safety`
+<table>
+<tr>
+<th> config-tools.yaml line-127</th>
+<th>Updated to add test2_hello_world </th>
+</tr>
+<tr>
+<td>
+<pre>
 
-Before checking in any code for the project, please lint the code. This can be done using:
+```python
+@action(is_system_action=True)
+async def check_tool_call_safety(tool_calls=None, context=None):
+    """Allow list for tool execution."""
+      ...
+      allowed_tools = ["get_weather", "search_web",
+          "get_time", "slack_read_messages"]
+      ...
+```
+</pre>
+</td>
+<td>
 
-```bash
-make lint-fix
+```python
+@action(is_system_action=True)
+async def check_tool_call_safety(tool_calls=None, context=None):
+    """Allow list for tool execution."""
+      ...
+      allowed_tools = ["get_weather", "search_web", "get_time",
+          "test2_hello_world", "slack_read_messages"]
+      ...
 ```
 
-# Test
+</td>
+</tr>
+</table>
 
-1. Open mcp-inspector to the mcp-gateway
-1. Try running a tool configured/not configured in nemo check config allow list in configmap [E.g.](/plugins/examples/nemocheck/k8deploy/config-tools.yaml)
+
+ * Redeploy check server
+ * Open the MCP inspector provided by the MCP gateway. Try tools in the allow-list vs. tools not in the allow-list.

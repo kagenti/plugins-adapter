@@ -1,1 +1,1 @@
-"""Tests for nemocheckinternal plugin."""
+"""Tests for nemocheck plugin."""

@@ -1,6 +1,6 @@
 plugins:
   - name: "NemoCheck"
-    kind: "plugins.examples.nemocheckinternal.plugin.NemoCheckv2"
+    kind: "plugins.examples.nemocheck.plugin.NemoCheck"
     description: "Nemo Check Adapter"
     version: "0.1.0"
     author: "julianstephen"

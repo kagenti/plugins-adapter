@@ -6,13 +6,11 @@ This is an external plugin deployment for the NemoCheck guardrails adapter. It r
 
 - **Core Implementation**: `plugins/examples/nemocheck/plugin.py` contains the actual NemoCheck logic
 - **External Deployment**: This directory (`nemocheck_external`) configures and deploys the plugin as an external MCP server
-- **Shared Logic**: Both internal and external deployments use the same underlying implementation to eliminate code duplication
-
 
 ## Run plugin in kind cluster
 
- 1. Run Nemo Guardrails check server. Instructions [here](#Deploy-checkserver)
- 1. Update `CHECK_ENDPOINT` variable in k8deploy/deploy.yaml to point to guardrails check server endpoint
+ 1. Run Nemo Guardrails check server. Instructions are the same as in the internal plugin [here](../nemocheck/README.md#prerequisites-nemo-check-server)
+ 1. Update `CHECK_ENDPOINT` variable in [k8deploy/deploy.yaml](./k8deploy/deploy.yaml) to point to guardrails check server endpoint
 
     ```bash
     cd plugins-adapter/plugins/examples/nemocheck
@@ -39,66 +37,25 @@ This is an external plugin deployment for the NemoCheck guardrails adapter. It r
    make all
    ```
 
-## Test with MCP inspector
- * Add allowed tools to `plugins-adapter/plugins/examples/nemocheck/k8deploy/config-tools.yaml#check_tool_call_safety`
-<table>
-<tr>
-<th> config-tools.yaml line-127</th>
-<th>Updated to add test2_hello_world </th>
-</tr>
-<tr>
-<td>
-<pre>
 
-```python
-@action(is_system_action=True)
-async def check_tool_call_safety(tool_calls=None, context=None):
-    """Allow list for tool execution."""
-      ...
-      allowed_tools = ["get_weather", "search_web",
-          "get_time", "slack_read_messages"]
-      ...
-```
-</pre>
-</td>
-<td>
+## Plugin Development
 
-```python
-@action(is_system_action=True)
-async def check_tool_call_safety(tool_calls=None, context=None):
-    """Allow list for tool execution."""
-      ...
-      allowed_tools = ["get_weather", "search_web", "get_time",
-          "test2_hello_world", "slack_read_messages"]
-      ...
+To install dependencies with dev packages (required for linting and testing):
+
+```bash
+make install-dev
 ```
 
-</td>
-</tr>
-</table>
+Alternatively, you can also install it in editable mode:
 
+```bash
+make install-editable
+```
 
- * Redeploy check server
- * Open mcp inspector. Try tools in allow list vs tools not in allow list
+## Setting up the development environment
 
-
-## Deploy-checkserver
- * Refer to [orignal repo](https://github.com/m-misiura/demos/tree/main/nemo_openshift/guardrail-checks/deployment) for full instructions
- * Instructions adpated for mcpgateway kind cluster to work with an llm proxy routing to some open ai compatable backend below
- * Makefile has targets to load checkserver to kind cluster, etc.
-
-   ```bash
-   cd plugins-adapter/plugins/examples/nemocheck/k8deploy
-   make deploy
-
-   ```
-
-
-## Testing
-
-Tests are located in the `nemocheck` plugin directory since both deployments share the same core implementation.
-
-See the [nemocheck README](../nemocheck/README.md#testing) for testing instructions.
+1. Copy .env.template .env
+2. Enable plugins in `.env`
 
 ## Runtime (server)
 

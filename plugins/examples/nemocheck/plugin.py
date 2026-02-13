@@ -26,17 +26,19 @@ from mcpgateway.plugins.framework import (
 import logging
 import os
 import requests
+import json
 
 # Initialize logging
 logger = logging.getLogger(__name__)
 log_level = os.getenv("LOGLEVEL", "INFO").upper()
 logger.setLevel(log_level)
 
-MODEL_NAME = os.getenv("NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct")
+MODEL_NAME = os.getenv(
+    "NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct"
+)  # Currently only for logging.
 DEFAULT_CHECK_ENDPOINT = os.getenv(
     "CHECK_ENDPOINT", "http://nemo-guardrails-service:8000"
 )
-
 HEADERS = {
     "Content-Type": "application/json",
 }
@@ -138,8 +140,8 @@ class NemoCheck(Plugin):
                 else:
                     metadata = data.get("rails_status")
                     violation = PluginViolation(
-                        reason=f"Tool Check status: {status}",
-                        description="Rails check blocked request",
+                        reason=f"Check tool rails:{status}.",
+                        description=json.dumps(data),
                         code=f"checkserver_http_status_code:{response.status_code}",
                         details=metadata,
                     )
