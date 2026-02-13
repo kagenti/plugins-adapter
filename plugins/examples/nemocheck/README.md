@@ -1,94 +1,44 @@
-# NemoCheck for Plugin Adapter
+# NemoCheck Internal Plugin
 
-Adapter for Nemo-Check guardrails.
+This directory contains the core `NemoCheck` plugin implementation used by both internal and external plugins.
 
-
-## Run plugin in kind cluster
-
- 1. Run Nemo Guardrails check server. Instructions [here](#Deploy-checkserver)
- 1. Update `CHECK_ENDPOINT` variable in k8deploy/deploy.yaml to point to guardrails check server endpoint
-
-    ```bash
-    cd plugins-adapter/plugins/examples/nemocheck
-    make deploy
-    ```
- 1.
-    <details>
-    <summary>Non-kind k8 cluster instructions</summary>
-
-    ```bash
-        cd plugins-adapter/plugins/examples/nemocheck
-        make container-build
-        # push image to your container repo and update image name in k8deploy/deploy.yaml
-        kubectl apply -f k8deploy/deploy.yaml
-
-    ```
-    </details>
-
- 1. Update plugin adapter to call this as an external plugin
-   
-   ```bash
-   cd ../../.. #project root directory plugins-adapter`
-   cp resources/config/external_plugin_nemocheck.yaml resources/config/config.yaml 
-   make all
-   ```
-
-## Test with MCP inspector
- * Add allowed tools to `plugins-adapter/plugins/examples/nemocheck/k8deploy/config-tools.yaml#check_tool_call_safety` 
-<table>
-<tr>
-<th> config-tools.yaml line-127</th>
-<th>Updated to add test2_hello_world </th>
-</tr>
-<tr>
-<td>
-<pre>
-
-```python
-@action(is_system_action=True)
-async def check_tool_call_safety(tool_calls=None, context=None):
-    """Allow list for tool execution."""
-      ...
-      allowed_tools = ["get_weather", "search_web", 
-          "get_time", "slack_read_messages"]
-      ...
-```  
-</pre>
-</td>
-<td>
-
-```python
-@action(is_system_action=True)
-async def check_tool_call_safety(tool_calls=None, context=None):
-    """Allow list for tool execution."""
-      ...
-      allowed_tools = ["get_weather", "search_web", "get_time", 
-          "test2_hello_world", "slack_read_messages"]
-      ...
-```  
-
-</td>
-</tr>
-</table>
-
-
- * Redeploy check server
- * Open mcp inspector. Try tools in allow list vs tools not in allow list
-
-
-## Deploy-checkserver
+## Prerequisites: Nemo-check server
  * Refer to [orignal repo](https://github.com/m-misiura/demos/tree/main/nemo_openshift/guardrail-checks/deployment) for full instructions
  * Instructions adpated for mcpgateway kind cluster to work with an llm proxy routing to some open ai compatable backend below
- * Makefile has targets to load checkserver to kind cluster, etc.
 
    ```bash
-   cd plugins-adapter/plugins/examples/nemocheck/k8deploy
-   make deploy
+	docker pull quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1
+	kind load docker-image quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1 --name mcp-gateway
+    cd plugins-adapter/plugins/examples/nemocheck/k8deploy
+	kubectl apply -f config-tools.yaml
+	kubectl apply -f server.yaml
 
    ```
+## Installation
 
+1. Find url of nemo-check-server service. E.g., from svc in `server.yaml`
+1. Update `${project_root}/resources/config/config.yaml`. Add the blob below, merge if other `plugin`s or `plugin_dir`s already exists. Sample file [here](/resources/config/nemocheck-internal-config.yaml)
 
-## Plugin Development 
+    ```yaml
+    # plugins/config.yaml - Main plugin configuration file
+    plugins:
+      - name: "NemoCheck"
+        kind: "plugins.examples.nemocheck.nemocheck.plugin.NemoCheck"
+        description: "Adapter for nemo check server"
+        version: "0.1.0"
+        hooks: ["tool_pre_invoke", "tool_post_invoke"]
+        mode: "enforce"  # enforce | permissive | disabled
+        config:
+          checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"
+    # Plugin directories to scan
+    plugin_dirs:
+      - "plugins/examples/nemocheck"    # Nemo Check Server plugins
+    ```
+
+1. In `config.yaml` ensure key `plugins.config.checkserver_url` points to the correct service
+1. Start plugin adapter
+
+## Plugin Development
 
 To install dependencies with dev packages (required for linting and testing):
 
@@ -121,30 +71,13 @@ make test
 
 ## Code Linting
 
-Before checking in any code for the project, please lint the code.  This can be done using:
+Before checking in any code for the project, please lint the code. This can be done using:
 
 ```bash
 make lint-fix
 ```
 
-## Runtime (server)
+# Test
 
-This project uses [chuck-mcp-runtime](https://github.com/chrishayuk/chuk-mcp-runtime) to run external plugins as a standardized MCP server.
-
-To build the container image:
-
-```bash
-make build
-```
-
-To run the container:
-
-```bash
-make start
-```
-
-To stop the container:
-
-```bash
-make stop
-```
+1. Open mcp-inspector to the mcp-gateway
+1. Try running a tool configured/not configured in nemo check config allow list in configmap [E.g.](/plugins/examples/nemocheck/k8deploy/config-tools.yaml)

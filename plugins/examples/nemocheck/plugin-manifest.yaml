@@ -1,4 +1,5 @@
-description: "Adapter for Nemo-Check guardrails"
+description: "Nemo Check Adapter"
+name: NemoCheck
 author: "julianstephen"
 version: "0.1.0"
 available_hooks:

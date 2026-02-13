@@ -1,5 +1,5 @@
 plugins:
-  - name: "NemoCheckv2"
+  - name: "NemoCheck"
     kind: "plugins.examples.nemocheckinternal.plugin.NemoCheckv2"
     description: "Nemo Check Adapter"
     version: "0.1.0"
@@ -17,7 +17,7 @@ plugins:
 
 # Plugin directories to scan
 plugin_dirs:
-  - "nemocheckv2"
+  - "nemocheck"
 
 # Global plugin settings
 plugin_settings:

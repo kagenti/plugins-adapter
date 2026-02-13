@@ -1,6 +1,6 @@
 plugins:
   - name: "NemoCheck"
-    kind: "nemocheck.plugin.NemoCheck"
+    kind: "plugin.NemoCheck"
     description: "Adapter for Nemo-Check guardrails"
     version: "0.1.0"
     author: "julianstephen"
@@ -17,7 +17,7 @@ plugins:
 
 # Plugin directories to scan
 plugin_dirs:
-  - "nemocheck"
+  - "../nemocheck"
 
 # Global plugin settings
 plugin_settings:

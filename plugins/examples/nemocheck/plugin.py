@@ -1,10 +1,10 @@
-"""Nemo Check Adapter.
+"""Nemo Check Plugin
 
 Copyright 2025
 SPDX-License-Identifier: Apache-2.0
 Authors: julianstephen
 
-This module loads configurations for plugins.
+This module provides the core Nemo Check guardrails plugin implementation.
 """
 
 # First-Party
@@ -26,41 +26,37 @@ from mcpgateway.plugins.framework import (
 import logging
 import os
 import requests
-import json
 
-# Initialize logging service first
+# Initialize logging
 logger = logging.getLogger(__name__)
 log_level = os.getenv("LOGLEVEL", "INFO").upper()
 logger.setLevel(log_level)
 
-MODEL_NAME = os.getenv(
-    "NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct"
-)  # Currently only for logging.
-CHECK_ENDPOINT = os.getenv("CHECK_ENDPOINT", "http://nemo-guardrails-service:8000")
+MODEL_NAME = os.getenv("NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct")
+DEFAULT_CHECK_ENDPOINT = os.getenv(
+    "CHECK_ENDPOINT", "http://nemo-guardrails-service:8000"
+)
 
-
-headers = {
+HEADERS = {
     "Content-Type": "application/json",
 }
 
 
-class NemoCheckv2(Plugin):
-    """Nemo Check Adapter."""
+class NemoCheck(Plugin):
+    """Nemo Check guardrails plugin."""
 
     def __init__(self, config: PluginConfig):
-        """Entry init block for plugin.
+        """Initialize the plugin.
 
         Args:
-          logger: logger that the skill can make use of
-          config: the skill configuration
+            config: The plugin configuration
         """
-        global CHECK_ENDPOINT
-        logger.info(f"plugin config {config}")
-        endpoint = config.config.get("checkserver_url", None)
-        if endpoint is not None:
-            CHECK_ENDPOINT = endpoint
-        logger.info(f"checkserver at {config}:{CHECK_ENDPOINT}")
         super().__init__(config)
+        # Allow config to override the endpoint
+        self.check_endpoint = config.config.get(
+            "checkserver_url", DEFAULT_CHECK_ENDPOINT
+        )
+        logger.info(f"Nemo Check endpoint: {self.check_endpoint}")
 
     async def prompt_pre_fetch(
         self, payload: PromptPrehookPayload, context: PluginContext
@@ -69,10 +65,10 @@ class NemoCheckv2(Plugin):
 
         Args:
             payload: The prompt payload to be analyzed.
-            context: contextual information about the hook call.
+            context: Contextual information about the hook call.
 
         Returns:
-            The result of the plugin's analysis, including whether the prompt can proceed.
+            The result of the plugin's analysis.
         """
         return PromptPrehookResult(continue_processing=True)
 
@@ -123,41 +119,55 @@ class NemoCheckv2(Plugin):
                 }
             ],
         }
-        violation = None
-        response = requests.post(
-            CHECK_ENDPOINT, headers=headers, json=check_nemo_payload
-        )
-        if response.status_code == 200:
-            data = response.json()
-            status = data.get("status", "blocked")
-            logger.debug(f"rails reply:{data}")
-            if status == "success":
-                metadata = data.get("rails_status")
-                result = ToolPreInvokeResult(
-                    continue_processing=True, metadata=metadata
-                )
+
+        try:
+            response = requests.post(
+                self.check_endpoint, headers=HEADERS, json=check_nemo_payload
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                status = data.get("status", "blocked")
+                logger.debug(f"rails reply: {data}")
+
+                if status == "success":
+                    metadata = data.get("rails_status")
+                    return ToolPreInvokeResult(
+                        continue_processing=True, metadata=metadata
+                    )
+                else:
+                    metadata = data.get("rails_status")
+                    violation = PluginViolation(
+                        reason=f"Tool Check status: {status}",
+                        description="Rails check blocked request",
+                        code=f"checkserver_http_status_code:{response.status_code}",
+                        details=metadata,
+                    )
+                    return ToolPreInvokeResult(
+                        continue_processing=False,
+                        violation=violation,
+                        metadata=metadata,
+                    )
             else:
-                metadata = data.get("rails_status")
                 violation = PluginViolation(
-                    reason=f"Check tool rails:{status}.",
-                    description=json.dumps(data),
+                    reason="Tool Check Unavailable",
+                    description="Tool arguments check server returned error",
                     code=f"checkserver_http_status_code:{response.status_code}",
-                    details=metadata,
+                    details={},
                 )
-                result = ToolPreInvokeResult(
-                    continue_processing=False, violation=violation, metadata=metadata
+                return ToolPreInvokeResult(
+                    continue_processing=False, violation=violation
                 )
 
-        else:
+        except Exception as e:
+            logger.error(f"Error calling Nemo Check endpoint: {e}")
             violation = PluginViolation(
-                reason="Tool Check Unavailable",
-                description="Tool arguments check server returned error:",
-                code=f"checkserver_http_status_code:{response.status_code}",
+                reason="Tool Check Error",
+                description=f"Failed to connect to check server: {str(e)}",
+                code="checkserver_connection_error",
                 details={},
             )
-            result = ToolPreInvokeResult(continue_processing=False, violation=violation)
-
-        return result
+            return ToolPreInvokeResult(continue_processing=False, violation=violation)
 
     async def tool_post_invoke(
         self, payload: ToolPostInvokePayload, context: PluginContext
