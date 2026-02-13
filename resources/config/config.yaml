@@ -40,6 +40,7 @@ plugins:
   - name: "NemoCheck"
     kind: "plugins.examples.nemocheck.plugin.NemoCheck"
     description: "Adapter for nemo check server"
+    hooks: ["tool_pre_invoke", "tool_post_invoke"]
     version: "0.1.0"
     author: "Julian Stephen"
     config:
