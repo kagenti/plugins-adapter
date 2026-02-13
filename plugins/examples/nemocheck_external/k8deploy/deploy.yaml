@@ -39,17 +39,17 @@ spec:
               value: "0.0.0.0"
             - name: PLUGINS_ENABLED
               value: "false"
-            - name: PLUGINS_CLI_COMPLETION  
+            - name: PLUGINS_CLI_COMPLETION
               value: "false"
-            - name: PLUGINS_CLI_MARKUP_MODE  
+            - name: PLUGINS_CLI_MARKUP_MODE
               value: "rich"
-            - name: PLUGINS_CONFIG  
+            - name: PLUGINS_CONFIG
               value: "./resources/plugins/config.yaml"
-            # - name: CHUK_MCP_CONFIG_PATH  
+            # - name: CHUK_MCP_CONFIG_PATH
               # value: "./resources/runtime/config.yaml"
-            - name: MCP_SSL_ENABLED  
+            - name: MCP_SSL_ENABLED
               value: "false"
-            - name: MCP_SSL_CERT_REQS  
+            - name: MCP_SSL_CERT_REQS
               value: "0"
             - name: LOGLEVEL
               value: "DEBUG"
