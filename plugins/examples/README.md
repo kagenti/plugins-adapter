@@ -15,6 +15,12 @@ External plugin adapter for NeMo Guardrails check server
 - Requires separate NeMo check server deployment
 - See [nemocheck/README.md](./nemocheck/README.md) for details
 
+### nemocheck-internal
+Internal plugin adapter for NeMo Guardrails check server
+- **Type**: Internal
+- Requires separate NeMo check server deployment
+- See [README.md](./nemocheckinternal/README.md) for details
+
 ## Usage
 
 Reference plugins in the plugin adapter config (default at `resources/config/config.yaml`):

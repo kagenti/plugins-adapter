@@ -1,4 +1,4 @@
-"""Adapter for Nemo-Check guardrails.
+"""Nemo Check Adapter.
 
 Copyright 2025
 SPDX-License-Identifier: Apache-2.0
@@ -23,25 +23,29 @@ from mcpgateway.plugins.framework import (
     PluginViolation,
 )
 
-
 import logging
 import os
 import requests
+import json
 
-headers = {
-    "Content-Type": "application/json",
-}
 # Initialize logging service first
 logger = logging.getLogger(__name__)
 log_level = os.getenv("LOGLEVEL", "INFO").upper()
 logger.setLevel(log_level)
 
-MODEL_NAME = os.getenv("NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct")  # Currently only for logging.
+MODEL_NAME = os.getenv(
+    "NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct"
+)  # Currently only for logging.
 CHECK_ENDPOINT = os.getenv("CHECK_ENDPOINT", "http://nemo-guardrails-service:8000")
 
 
-class NemoCheck(Plugin):
-    """Adapter for Nemo-Check guardrails."""
+headers = {
+    "Content-Type": "application/json",
+}
+
+
+class NemoCheckv2(Plugin):
+    """Nemo Check Adapter."""
 
     def __init__(self, config: PluginConfig):
         """Entry init block for plugin.
@@ -50,9 +54,17 @@ class NemoCheck(Plugin):
           logger: logger that the skill can make use of
           config: the skill configuration
         """
+        global CHECK_ENDPOINT
+        logger.info(f"plugin config {config}")
+        endpoint = config.config.get("checkserver_url", None)
+        if endpoint is not None:
+            CHECK_ENDPOINT = endpoint
+        logger.info(f"checkserver at {config}:{CHECK_ENDPOINT}")
         super().__init__(config)
 
-    async def prompt_pre_fetch(self, payload: PromptPrehookPayload, context: PluginContext) -> PromptPrehookResult:
+    async def prompt_pre_fetch(
+        self, payload: PromptPrehookPayload, context: PluginContext
+    ) -> PromptPrehookResult:
         """The plugin hook run before a prompt is retrieved and rendered.
 
         Args:
@@ -62,10 +74,11 @@ class NemoCheck(Plugin):
         Returns:
             The result of the plugin's analysis, including whether the prompt can proceed.
         """
-
         return PromptPrehookResult(continue_processing=True)
 
-    async def prompt_post_fetch(self, payload: PromptPosthookPayload, context: PluginContext) -> PromptPosthookResult:
+    async def prompt_post_fetch(
+        self, payload: PromptPosthookPayload, context: PluginContext
+    ) -> PromptPosthookResult:
         """Plugin hook run after a prompt is rendered.
 
         Args:
@@ -77,7 +90,9 @@ class NemoCheck(Plugin):
         """
         return PromptPosthookResult(continue_processing=True)
 
-    async def tool_pre_invoke(self, payload: ToolPreInvokePayload, context: PluginContext) -> ToolPreInvokeResult:
+    async def tool_pre_invoke(
+        self, payload: ToolPreInvokePayload, context: PluginContext
+    ) -> ToolPreInvokeResult:
         """Plugin hook run before a tool is invoked.
 
         Args:
@@ -109,30 +124,44 @@ class NemoCheck(Plugin):
             ],
         }
         violation = None
-        response = requests.post(CHECK_ENDPOINT, headers=headers, json=check_nemo_payload)
+        response = requests.post(
+            CHECK_ENDPOINT, headers=headers, json=check_nemo_payload
+        )
         if response.status_code == 200:
             data = response.json()
             status = data.get("status", "blocked")
             logger.debug(f"rails reply:{data}")
             if status == "success":
                 metadata = data.get("rails_status")
-                result = ToolPreInvokeResult(continue_processing=True, metadata=metadata)
+                result = ToolPreInvokeResult(
+                    continue_processing=True, metadata=metadata
+                )
             else:
                 metadata = data.get("rails_status")
                 violation = PluginViolation(
-                    reason=f"Tool Check status:{status}", description="Rails check blocked request", code=f"checkserver_http_status_code:{response.status_code}", details=metadata
+                    reason=f"Check tool rails:{status}.",
+                    description=json.dumps(data),
+                    code=f"checkserver_http_status_code:{response.status_code}",
+                    details=metadata,
                 )
-                result = ToolPreInvokeResult(continue_processing=False, violation=violation, metadata=metadata)
+                result = ToolPreInvokeResult(
+                    continue_processing=False, violation=violation, metadata=metadata
+                )
 
         else:
             violation = PluginViolation(
-                reason="Tool Check Unavailable", description="Tool arguments check server returned error:", code=f"checkserver_http_status_code:{response.status_code}", details={}
+                reason="Tool Check Unavailable",
+                description="Tool arguments check server returned error:",
+                code=f"checkserver_http_status_code:{response.status_code}",
+                details={},
             )
             result = ToolPreInvokeResult(continue_processing=False, violation=violation)
 
         return result
 
-    async def tool_post_invoke(self, payload: ToolPostInvokePayload, context: PluginContext) -> ToolPostInvokeResult:
+    async def tool_post_invoke(
+        self, payload: ToolPostInvokePayload, context: PluginContext
+    ) -> ToolPostInvokeResult:
         """Plugin hook run after a tool is invoked.
 
         Args:

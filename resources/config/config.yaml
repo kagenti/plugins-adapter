@@ -22,6 +22,7 @@ plugins:
           replace: crud
         - search: crud
           replace: yikes
+
   # Nemo example
   - name: "NemoWrapperPlugin"
     kind: "plugins.examples.nemo.nemo_wrapper_plugin.NemoWrapperPlugin"
@@ -35,12 +36,21 @@ plugins:
     config:
       foo: bar
 
+  # Nemo Check Example
+  - name: "NemoCheckv2"
+    kind: "plugins.examples.nemocheckinternal.plugin.NemoCheckv2"
+    description: "Adapter for nemo check server"
+    version: "0.1.0"
+    author: "Julian Stephen"
+    config:
+      checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"    
 # Plugin directories to scan
 plugin_dirs:
   - "plugins/native"           # Built-in plugins
   - "plugins/custom"           # Custom organization plugins
   - "/etc/mcpgateway/plugins"  # System-wide plugins
   - "plugins/examples/nemo"    # Example Nemo guardrails plugins
+  - "plugins/examples/nemocheckinternal"    # Nemo Check Server plugins
 
 # Global plugin settings
 plugin_settings:
