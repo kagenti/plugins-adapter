@@ -6,6 +6,8 @@ This is an external plugin deployment for the NemoCheck guardrails adapter. It r
 
 - **Core Implementation**: `plugins/examples/nemocheck/plugin.py` contains the actual NemoCheck logic
 - **External Deployment**: This directory (`nemocheck_external`) configures and deploys the plugin as an external MCP server
+- **Shared Logic**: The config references `nemocheck` to use the core implementation without code duplication
+- **Container Build**: The Containerfile copies the `nemocheck` directory during build to include the core implementation
 
 ## Run plugin in kind cluster
 
@@ -13,7 +15,7 @@ This is an external plugin deployment for the NemoCheck guardrails adapter. It r
  1. Update `CHECK_ENDPOINT` variable in [k8deploy/deploy.yaml](./k8deploy/deploy.yaml) to point to guardrails check server endpoint
 
     ```bash
-    cd plugins-adapter/plugins/examples/nemocheck
+    cd plugins-adapter/plugins/examples/nemocheck_external
     make deploy
     ```
  1.
@@ -21,7 +23,8 @@ This is an external plugin deployment for the NemoCheck guardrails adapter. It r
     <summary>Non-kind k8 cluster instructions</summary>
 
     ```bash
-        cd plugins-adapter/plugins/examples/nemocheck
+        cd plugins-adapter/plugins/examples/nemocheck_external
+        make deploy
         make container-build
         # push image to your container repo and update image name in k8deploy/deploy.yaml
         kubectl apply -f k8deploy/deploy.yaml
