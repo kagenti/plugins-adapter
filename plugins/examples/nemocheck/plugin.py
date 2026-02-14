@@ -107,9 +107,11 @@ class NemoCheck(Plugin):
         Returns:
             The result of the plugin's analysis, including whether the tool can proceed.
         """
-        logger.info("tool_pre_invoke....")
-        logger.info(payload)
-        tool_name = payload.name  # ("tool_name", None)
+        logger.info(
+            f"[NemoCheck] Starting tool pre invoke hook with payload {payload}"
+        )
+
+        tool_name = payload.name
         check_nemo_payload = {
             "model": MODEL_NAME,
             "messages": [
@@ -139,7 +141,7 @@ class NemoCheck(Plugin):
             if response.status_code == 200:
                 data = response.json()
                 status = data.get("status", "blocked")
-                logger.debug(f"rails reply: {data}")
+                logger.debug(f"[NemoCheck] Rails reply: {data}")
 
                 if status == "success":
                     metadata = data.get("rails_status")
@@ -171,7 +173,7 @@ class NemoCheck(Plugin):
                 )
 
         except Exception as e:
-            logger.error(f"Error calling Nemo Check endpoint: {e}")
+            logger.error(f"[NemoCheck] Error checking tool arguments: {e}")
             violation = PluginViolation(
                 reason="Tool Check Error",
                 description=f"Failed to connect to check server: {str(e)}",
