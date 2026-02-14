@@ -10,10 +10,16 @@ Internal plugin that wraps NeMo Guardrails for PII detection using an Ollama mod
 - See [nemo/README.md](./nemo/README.md) for details
 
 ### nemocheck
+Internal plugin adapter for NeMo Guardrails check server
+- **Type**: Internal
+- Requires separate NeMo check server deployment
+- See [README.md](./nemocheck/README.md) for details
+
+### nemocheck_external
 External plugin adapter for NeMo Guardrails check server
 - **Type**: External (separate service)
 - Requires separate NeMo check server deployment
-- See [nemocheck/README.md](./nemocheck/README.md) for details
+- See [nemocheck_external/README.md](./nemocheck_external/README.md) for details
 
 ## Usage
 

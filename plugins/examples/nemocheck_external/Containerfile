@@ -9,6 +9,7 @@ ARG VERSION
 
 ENV APP_HOME=/app
 ENV PLUGINS_TRANSPORT=http
+ENV PYTHONPATH="${HOME}:${PYTHONPATH}"
 
 USER 0
 
@@ -27,8 +28,16 @@ RUN mkdir -p ${APP_HOME} && \
 USER 1001
 
 # Install plugin package
-COPY . .
-RUN pip install --no-cache-dir uv && python -m uv pip install .
+# Note: Build context should be set to parent directory to access ../nemocheck
+# Example: docker build -f nemocheck_external/Containerfile -t nemocheck-external .
+COPY --chown=1001:0 nemocheck ${HOME}/nemocheck
+COPY --chown=1001:0 nemocheck_external ${HOME}/
+
+WORKDIR ${HOME}
+# Install nemocheck package first (the core plugin)
+RUN pip install --no-cache-dir uv && \
+    cd nemocheck && python -m uv pip install . && cd .. && \
+    python -m uv pip install .
 
 # Make default cache directory writable
 RUN mkdir -p -m 0776 ${HOME}/.cache

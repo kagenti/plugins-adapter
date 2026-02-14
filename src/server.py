@@ -18,7 +18,9 @@ from mcpgateway.plugins.framework import (
     PromptPrehookPayload,
     ToolPostInvokePayload,
     ToolPreInvokePayload,
+    PluginViolation,
 )
+
 from mcpgateway.plugins.framework import PluginManager
 from mcpgateway.plugins.framework.models import GlobalContext
 
@@ -71,10 +73,14 @@ async def getToolPreInvokeResponse(body):
     )
     logger.debug(f"**** Tool Pre Invoke Result: {result} ****")
     if not result.continue_processing:
+        error_message = "No go - Tool args forbidden"
+        if result.violation is not None:
+            violation: PluginViolation = result.violation
+            error_message = f"{violation.reason} -- {violation.description}"
         error_body = {
             "jsonrpc": body["jsonrpc"],
             "id": body["id"],
-            "error": {"code": -32000, "message": "No go - Tool args forbidden"},
+            "error": {"code": -32000, "message": error_message},
         }
         body_resp = ep.ProcessingResponse(
             immediate_response=ep.ImmediateResponse(
