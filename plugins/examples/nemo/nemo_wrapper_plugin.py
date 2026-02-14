@@ -62,20 +62,24 @@ class NemoWrapperPlugin(Plugin):
                 rails_response = await self._rails.generate_async(
                     messages=[{"role": "user", "content": payload_args}]
                 )
-            except (
-                asyncio.CancelledError
-            ):  # asyncio.exceptions.CancelledError is thrown by nemo, need to catch
-                logging.exception("An error occurred in the nemo plugin except block:")
+            except asyncio.CancelledError:  # asyncio.exceptions.CancelledError is thrown by nemo, need to catch
+                logging.exception(
+                    "An error occurred in the nemo plugin except block:"
+                )
             finally:
                 logger.warning("[NemoWrapperPlugin] Async rails executed")
                 logger.warning(rails_response)
         if rails_response and "PII detected" in rails_response["content"]:
-            logger.warning("[NemoWrapperPlugin] PII detected, stopping processing")
+            logger.warning(
+                "[NemoWrapperPlugin] PII detected, stopping processing"
+            )
             return ToolPreInvokeResult(
                 modified_payload=payload, continue_processing=False
             )
         logger.warning("[NemoWrapperPlugin] No PII detected, continuing")
-        return ToolPreInvokeResult(modified_payload=payload, continue_processing=True)
+        return ToolPreInvokeResult(
+            modified_payload=payload, continue_processing=True
+        )
 
     async def tool_post_invoke(
         self, payload: ToolPostInvokePayload, context: PluginContext

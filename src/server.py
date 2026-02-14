@@ -62,7 +62,9 @@ async def getToolPreInvokeResponse(body):
         "tool_args": body["params"]["arguments"],
         "client_session_id": "replaceme",
     }
-    payload = ToolPreInvokePayload(name=body["params"]["name"], args=payload_args)
+    payload = ToolPreInvokePayload(
+        name=body["params"]["name"], args=payload_args
+    )
     # TODO: hard-coded ids
     global_context = GlobalContext(request_id="1", server_id="2")
     logger.debug(f"**** Invoking Tool Pre Invoke with payload: {payload} ****")
@@ -94,7 +96,8 @@ async def getToolPreInvokeResponse(body):
                         ),
                         core.HeaderValueOption(
                             header=core.HeaderValue(
-                                key="x-mcp-denied", raw_value="True".encode("utf-8")
+                                key="x-mcp-denied",
+                                raw_value="True".encode("utf-8"),
                             )
                         ),
                     ],
@@ -109,7 +112,9 @@ async def getToolPreInvokeResponse(body):
             body["params"]["arguments"] = result_payload.args["tool_args"]
             body_mutation = ep.BodyResponse(
                 response=ep.CommonResponse(
-                    body_mutation=ep.BodyMutation(body=json.dumps(body).encode("utf-8"))
+                    body_mutation=ep.BodyMutation(
+                        body=json.dumps(body).encode("utf-8")
+                    )
                 )
             )
         else:
@@ -138,13 +143,39 @@ async def getToolPostInvokeResponse(body):
     result, _ = await manager.invoke_hook(
         ToolHookType.TOOL_POST_INVOKE, payload, global_context=global_context
     )
-    logger.info(result)
+    logger.debug(f"**** Tool Post Invoke result {result}")
     if not result.continue_processing:
+        # Build error response to replace the tool result
+        error_body = {
+            "jsonrpc": body["jsonrpc"],
+            "id": body["id"],
+            "error": {"code": -32000, "message": "Tool response forbidden"},
+        }
         body_resp = ep.ProcessingResponse(
-            immediate_response=ep.ImmediateResponse(
-                # TODO: hard-coded error reason
-                status=http_status_pb2.HttpStatus(code=http_status_pb2.Forbidden),
-                details="No go",
+            response_body=ep.BodyResponse(
+                response=ep.CommonResponse(
+                    header_mutation=ep.HeaderMutation(
+                        set_headers=[
+                            core.HeaderValueOption(
+                                header=core.HeaderValue(
+                                    key="content-type",
+                                    raw_value="application/json".encode(
+                                        "utf-8"
+                                    ),
+                                )
+                            ),
+                            core.HeaderValueOption(
+                                header=core.HeaderValue(
+                                    key="x-mcp-denied",
+                                    raw_value="True".encode("utf-8"),
+                                )
+                            ),
+                        ],
+                    ),
+                    body_mutation=ep.BodyMutation(
+                        body=(json.dumps(error_body)).encode("utf-8")
+                    ),
+                )
             )
         )
     else:
@@ -153,12 +184,14 @@ async def getToolPostInvokeResponse(body):
             body["result"] = result_payload.result
             body_mutation = ep.BodyResponse(
                 response=ep.CommonResponse(
-                    body_mutation=ep.BodyMutation(body=json.dumps(body).encode("utf-8"))
+                    body_mutation=ep.BodyMutation(
+                        body=json.dumps(body).encode("utf-8")
+                    )
                 )
             )
         else:
             body_mutation = ep.BodyResponse(response=ep.CommonResponse())
-        body_resp = ep.ProcessingResponse(request_body=body_mutation)
+        body_resp = ep.ProcessingResponse(response_body=body_mutation)
     return body_resp
 
 
@@ -181,7 +214,9 @@ async def getPromptPreFetchResponse(body):
     if not result.continue_processing:
         body_resp = ep.ProcessingResponse(
             immediate_response=ep.ImmediateResponse(
-                status=http_status_pb2.HttpStatus(code=http_status_pb2.Forbidden),
+                status=http_status_pb2.HttpStatus(
+                    code=http_status_pb2.Forbidden
+                ),
                 details="No go",
             )
         )
@@ -190,12 +225,93 @@ async def getPromptPreFetchResponse(body):
         body_resp = ep.ProcessingResponse(
             request_body=ep.BodyResponse(
                 response=ep.CommonResponse(
-                    body_mutation=ep.BodyMutation(body=json.dumps(body).encode("utf-8"))
+                    body_mutation=ep.BodyMutation(
+                        body=json.dumps(body).encode("utf-8")
+                    )
                 )
             )
         )
     logger.info(f"****Prompt Pre-fetch Return body: {body_resp}")
     return body_resp
+
+
+# ============================================================================
+# RESPONSE BODY PROCESSING HELPER
+# ============================================================================
+
+
+async def process_response_body_buffer(buffer: bytearray):
+    """Process buffered response body content.
+
+    Parses the buffered content (supporting both SSE and plain JSON-RPC formats),
+    and invokes the tool post-invoke hook if it's a tool result.
+
+    Args:
+        buffer: The accumulated response body bytes
+
+    Returns:
+        ProcessingResponse to send back to Envoy
+    """
+    if not buffer:
+        # Empty buffer at end of stream
+        logger.debug("End of stream with empty buffer")
+        return ep.ProcessingResponse(
+            response_body=ep.BodyResponse(response=ep.CommonResponse())
+        )
+
+    try:
+        text = buffer.decode("utf-8")
+    except UnicodeDecodeError:
+        logger.debug("Response body not UTF-8; skipping")
+        return ep.ProcessingResponse(
+            response_body=ep.BodyResponse(response=ep.CommonResponse())
+        )
+
+    lines = text.split("\n")
+    logger.debug(f"Response body text: {lines}")
+
+    # Handle both SSE format and plain JSON-RPC format
+    data = None
+
+    # Check if this is SSE format (starts with "event:" or "data:")
+    if text.strip().startswith(("event:", "data:")):
+        # Parse SSE format
+        lines = text.split("\n")
+        for line in lines:
+            line = line.strip()
+            if line.startswith("data:"):
+                json_str = line[5:].strip()  # Remove "data:" prefix
+                logger.debug(f"Extracted JSON from SSE: {json_str}")
+                try:
+                    data = json.loads(json_str)
+                    break
+                except json.JSONDecodeError:
+                    continue
+    else:
+        # Parse plain JSON-RPC format
+        lines = [line.strip() for line in text.split("\n") if line.strip()]
+        if lines:
+            try:
+                data = json.loads(lines[0])
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON: {e}")
+
+    if data:
+        logger.debug(f"Parsed response data: {data}")
+
+        # Check if this is a tool result response
+        if "result" in data and "content" in data["result"]:
+            logger.info("Invoking tool post-invoke hook")
+            return await getToolPostInvokeResponse(data)
+        else:
+            return ep.ProcessingResponse(
+                response_body=ep.BodyResponse(response=ep.CommonResponse())
+            )
+    else:
+        logger.warning("No data parsed from response body")
+        return ep.ProcessingResponse(
+            response_body=ep.BodyResponse(response=ep.CommonResponse())
+        )
 
 
 # ============================================================================
@@ -293,7 +409,9 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         body = json.loads(text)
                         if "method" in body and body["method"] == "tools/call":
                             body_resp = await getToolPreInvokeResponse(body)
-                        elif "method" in body and body["method"] == "prompts/get":
+                        elif (
+                            "method" in body and body["method"] == "prompts/get"
+                        ):
                             body_resp = await getPromptPreFetchResponse(body)
                         else:
                             body_resp = ep.ProcessingResponse(
@@ -308,43 +426,37 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
             # ----------------------------------------------------------------
             # Response Body Processing (MCP Tool Results)
             # ----------------------------------------------------------------
-            elif request.HasField("response_body") and request.response_body.body:
-                chunk = request.response_body.body
-                resp_body_buf.extend(chunk)
-
-                if getattr(request.response_body, "end_of_stream", False):
-                    try:
-                        text = resp_body_buf.decode("utf-8")
-                    except UnicodeDecodeError:
-                        logger.debug("Response body not UTF-8; skipping")
-                    else:
-                        logger.info(text.split("\n"))
-                        # find data key
-                        data = [d for d in text.split("\n") if d.startswith("data:")]
-                        # logger.info(json.loads(data[0].strip("data:")))
-                        if data:  # List can be empty
-                            data = json.loads(data[0].strip("data:"))
-                        # TODO: check for tool call
-                        if "result" in data and "content" in data["result"]:
-                            body_resp = await getToolPostInvokeResponse(data)
-                        else:
-                            body_resp = ep.ProcessingResponse(
-                                response_body=ep.BodyResponse(
-                                    response=ep.CommonResponse()
-                                )
-                            )
-                        yield body_resp
-                    resp_body_buf.clear()
-            # ----------------------------------------------------------------
-            # Response Body Processing (No body field)
-            # ----------------------------------------------------------------
             elif request.HasField("response_body"):
-                logger.warning("On Response, no body.")
-                logger.warning(request)
-                body_resp = ep.ProcessingResponse(
-                    response_body=ep.BodyResponse(response=ep.CommonResponse())
-                )
-                yield body_resp
+                logger.debug(f"Processing response body: {request}")
+
+                # Buffer content if present in this chunk
+                if request.response_body.body:
+                    chunk = request.response_body.body
+                    resp_body_buf.extend(chunk)
+                    logger.debug(f"Buffered chunk ({len(chunk)} bytes)")
+
+                # Check for end of stream (regardless of whether this chunk has content)
+                if getattr(request.response_body, "end_of_stream", False):
+                    logger.debug(
+                        "End of stream reached, processing complete buffered response"
+                    )
+
+                    # Process the buffered content
+                    body_resp = await process_response_body_buffer(
+                        resp_body_buf
+                    )
+                    yield body_resp
+                    resp_body_buf.clear()
+                else:
+                    # Intermediate chunk - acknowledge but don't process yet
+                    logger.debug(
+                        "Buffering intermediate chunk, waiting for end_of_stream"
+                    )
+                    yield ep.ProcessingResponse(
+                        response_body=ep.BodyResponse(
+                            response=ep.CommonResponse()
+                        )
+                    )
 
             else:
                 # Unhandled request types
