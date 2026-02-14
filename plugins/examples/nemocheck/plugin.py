@@ -62,7 +62,9 @@ class NemoCheck(Plugin):
             )
         else:
             self.check_endpoint = DEFAULT_CHECK_ENDPOINT
-            logger.warning("Plugin config is empty or invalid, using default endpoint")
+            logger.warning(
+                "Plugin config is empty or invalid, using default endpoint"
+            )
         logger.info(f"Nemo Check endpoint: {self.check_endpoint}")
 
     async def prompt_pre_fetch(
@@ -119,7 +121,9 @@ class NemoCheck(Plugin):
                             "type": "function",
                             "function": {
                                 "name": tool_name,
-                                "arguments": payload.args.get("tool_args", None),
+                                "arguments": payload.args.get(
+                                    "tool_args", None
+                                ),
                             },
                         }
                     ],
@@ -174,7 +178,9 @@ class NemoCheck(Plugin):
                 code="checkserver_connection_error",
                 details={},
             )
-            return ToolPreInvokeResult(continue_processing=False, violation=violation)
+            return ToolPreInvokeResult(
+                continue_processing=False, violation=violation
+            )
 
     async def tool_post_invoke(
         self, payload: ToolPostInvokePayload, context: PluginContext
