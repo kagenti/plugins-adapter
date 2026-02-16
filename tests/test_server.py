@@ -147,7 +147,14 @@ async def test_getToolPostInvokeResponse_continue_processing(
 async def test_getToolPostInvokeResponse_blocked(
     mock_envoy_modules, mock_manager, sample_tool_result_body
 ):
-    """Test getToolPostInvokeResponse when plugin blocks the response."""
+    """Test getToolPostInvokeResponse when plugin blocks the response.
+
+    This test verifies that when continue_processing=False, the function
+    uses immediate_response (not response_body) and includes violation details.
+    """
+    # Setup mocks for immediate_response path
+    setup_response_mocks(mock_envoy_modules)
+
     # Import server after mocking
     import src.server
 
@@ -166,10 +173,23 @@ async def test_getToolPostInvokeResponse_blocked(
     # Inject mock manager
     src.server.manager = mock_manager
 
-    # Call the function
-    response = await src.server.getToolPostInvokeResponse(
-        sample_tool_result_body
-    )
+    # Capture json.dumps calls to verify error body content
+    original_dumps = json.dumps
+    captured_bodies = []
+
+    def spy_dumps(obj, **kwargs):
+        if isinstance(obj, dict) and "error" in obj:
+            captured_bodies.append(obj)
+        return original_dumps(obj, **kwargs)
+
+    json.dumps = spy_dumps
+    try:
+        # Call the function
+        response = await src.server.getToolPostInvokeResponse(
+            sample_tool_result_body
+        )
+    finally:
+        json.dumps = original_dumps
 
     # Verify the hook was called with correct payload
     assert mock_manager.invoke_hook.called
@@ -180,6 +200,18 @@ async def test_getToolPostInvokeResponse_blocked(
 
     # Verify response was created (error path taken)
     assert response is not None
+
+    # Verify error body was created with violation details
+    assert len(captured_bodies) > 0
+    error_body = captured_bodies[0]
+    assert "error" in error_body
+    assert error_body["error"]["code"] == -32000
+    # Verify violation message is included
+    assert "Sensitive content detected" in error_body["error"]["message"]
+    assert (
+        "Tool response contains forbidden content"
+        in error_body["error"]["message"]
+    )
 
 
 @pytest.mark.asyncio

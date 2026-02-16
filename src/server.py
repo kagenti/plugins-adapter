@@ -131,6 +131,10 @@ async def getToolPostInvokeResponse(body):
 
     Invokes plugins after a tool has been called, allowing for result validation,
     modification, or filtering of the tool output.
+
+    Note: In STREAMED mode, blocking responses may fail if headers are already sent.
+    This implementation uses immediate_response to attempt early termination, but
+    it may not always succeed due to streaming constraints.
     """
     # FIXME: size of content array is expected to be 1
     # for content in body["result"]["content"]:
@@ -145,37 +149,45 @@ async def getToolPostInvokeResponse(body):
     )
     logger.debug(f"**** Tool Post Invoke result {result}")
     if not result.continue_processing:
-        # Build error response to replace the tool result
+        # Build error message
+        error_message = "Tool response forbidden"
+        if result.violation is not None:
+            violation: PluginViolation = result.violation
+            error_message = f"{violation.reason} -- {violation.description}"
+
         error_body = {
             "jsonrpc": body["jsonrpc"],
             "id": body["id"],
-            "error": {"code": -32000, "message": "Tool response forbidden"},
+            "error": {"code": -32000, "message": error_message},
         }
+
+        # In STREAMED mode, we attempt to use immediate_response to terminate early
+        # This may fail if response headers have already been sent
+        logger.warning(
+            "Tool post-invoke blocking in STREAMED mode - may be unreliable. "
+            "Consider using BUFFERED mode or moving validation to pre-invoke hooks."
+        )
         body_resp = ep.ProcessingResponse(
-            response_body=ep.BodyResponse(
-                response=ep.CommonResponse(
-                    header_mutation=ep.HeaderMutation(
-                        set_headers=[
-                            core.HeaderValueOption(
-                                header=core.HeaderValue(
-                                    key="content-type",
-                                    raw_value="application/json".encode(
-                                        "utf-8"
-                                    ),
-                                )
-                            ),
-                            core.HeaderValueOption(
-                                header=core.HeaderValue(
-                                    key="x-mcp-denied",
-                                    raw_value="True".encode("utf-8"),
-                                )
-                            ),
-                        ],
-                    ),
-                    body_mutation=ep.BodyMutation(
-                        body=(json.dumps(error_body)).encode("utf-8")
-                    ),
-                )
+            immediate_response=ep.ImmediateResponse(
+                # Use 200 status with error in body for MCP protocol compatibility
+                status=http_status_pb2.HttpStatus(code=200),
+                headers=ep.HeaderMutation(
+                    set_headers=[
+                        core.HeaderValueOption(
+                            header=core.HeaderValue(
+                                key="content-type",
+                                raw_value="application/json".encode("utf-8"),
+                            )
+                        ),
+                        core.HeaderValueOption(
+                            header=core.HeaderValue(
+                                key="x-mcp-denied",
+                                raw_value="True".encode("utf-8"),
+                            )
+                        ),
+                    ],
+                ),
+                body=(json.dumps(error_body)).encode("utf-8"),
             )
         )
     else:
@@ -192,6 +204,7 @@ async def getToolPostInvokeResponse(body):
         else:
             body_mutation = ep.BodyResponse(response=ep.CommonResponse())
         body_resp = ep.ProcessingResponse(response_body=body_mutation)
+    logger.info(f"****Tool Post Invoke Return body: {body_resp}****")
     return body_resp
 
 
