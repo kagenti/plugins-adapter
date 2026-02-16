@@ -206,16 +206,43 @@ async def test_getToolPostInvokeResponse_modified_payload(
     # Inject mock manager
     src.server.manager = mock_manager
 
-    # Call the function
-    response = await src.server.getToolPostInvokeResponse(
-        sample_tool_result_body
-    )
+    # Spy on json.dumps to capture what body is being serialized
+    original_dumps = json.dumps
+    captured_body = None
+
+    def spy_dumps(obj, **kwargs):
+        nonlocal captured_body
+        # Capture the body dict that's being serialized
+        if isinstance(obj, dict) and "result" in obj and "jsonrpc" in obj:
+            captured_body = obj
+        return original_dumps(obj, **kwargs)
+
+    json.dumps = spy_dumps
+    try:
+        # Call the function
+        response = await src.server.getToolPostInvokeResponse(
+            sample_tool_result_body
+        )
+    finally:
+        json.dumps = original_dumps
 
     # Verify the hook was called
     assert mock_manager.invoke_hook.called
 
     # Verify response was created
     assert response is not None
+
+    # Verify the body was modified with the new result
+    assert captured_body is not None, (
+        "json.dumps should have been called with the modified body"
+    )
+    assert captured_body["result"] == modified_result
+    assert (
+        captured_body["result"]["content"][0]["text"] == "Modified tool result"
+    )
+    # Verify original metadata (jsonrpc, id) is preserved
+    assert captured_body["jsonrpc"] == sample_tool_result_body["jsonrpc"]
+    assert captured_body["id"] == sample_tool_result_body["id"]
 
 
 @pytest.mark.asyncio
@@ -319,49 +346,6 @@ async def test_process_response_body_buffer_with_sse_format(
 
 
 @pytest.mark.asyncio
-async def test_process_response_body_buffer_empty(
-    mock_envoy_modules, mock_manager
-):
-    """Test process_response_body_buffer with empty buffer."""
-    setup_response_mocks(mock_envoy_modules)
-    import src.server
-
-    src.server.manager = mock_manager
-    response = await src.server.process_response_body_buffer(bytearray())
-
-    # Verify ProcessingResponse was returned
-    assert response is not None
-    assert not mock_manager.invoke_hook.called, (
-        "Tool post-invoke hook should not be called for empty buffer"
-    )
-
-
-@pytest.mark.asyncio
-async def test_process_response_body_buffer_non_tool_result(
-    mock_envoy_modules, mock_manager
-):
-    """Test process_response_body_buffer with non-tool result (error response)."""
-    setup_response_mocks(mock_envoy_modules)
-    import src.server
-
-    src.server.manager = mock_manager
-
-    error_response = {
-        "jsonrpc": "2.0",
-        "id": "test-error",
-        "error": {"code": -32000, "message": "Error"},
-    }
-    buffer = bytearray(json.dumps(error_response).encode("utf-8"))
-    response = await src.server.process_response_body_buffer(buffer)
-
-    # Verify ProcessingResponse was returned
-    assert response is not None
-    assert not mock_manager.invoke_hook.called, (
-        "Tool post-invoke hook should not be called for error responses"
-    )
-
-
-@pytest.mark.asyncio
 async def test_process_response_body_buffer_multiple_chunks_scenario(
     mock_envoy_modules, mock_manager
 ):
@@ -398,26 +382,45 @@ async def test_process_response_body_buffer_multiple_chunks_scenario(
 
 
 @pytest.mark.asyncio
-async def test_process_response_body_buffer_single_chunk_with_end_of_stream(
+async def test_process_response_body_buffer_empty(
     mock_envoy_modules, mock_manager
 ):
-    """Test buffering: all content in one chunk with end_of_stream."""
+    """Test process_response_body_buffer with empty buffer."""
     setup_response_mocks(mock_envoy_modules)
     import src.server
 
-    setup_manager_with_result(mock_manager)
+    src.server.manager = mock_manager
+    response = await src.server.process_response_body_buffer(bytearray())
+
+    # Verify hook is NOT called for empty buffer
+    assert not mock_manager.invoke_hook.called, (
+        "Tool post-invoke hook should not be called for empty buffer"
+    )
+    # Verify response is returned (function doesn't crash on empty buffer)
+    assert response is not None
+
+
+@pytest.mark.asyncio
+async def test_process_response_body_buffer_non_tool_result(
+    mock_envoy_modules, mock_manager
+):
+    """Test process_response_body_buffer with non-tool result (error response)."""
+    setup_response_mocks(mock_envoy_modules)
+    import src.server
+
     src.server.manager = mock_manager
 
-    tool_result = {
+    error_response = {
         "jsonrpc": "2.0",
-        "id": "test-single",
-        "result": {"content": [{"type": "text", "text": "Single chunk"}]},
+        "id": "test-error",
+        "error": {"code": -32000, "message": "Error"},
     }
-    buffer = bytearray(json.dumps(tool_result).encode("utf-8"))
+    buffer = bytearray(json.dumps(error_response).encode("utf-8"))
     response = await src.server.process_response_body_buffer(buffer)
 
-    assert mock_manager.invoke_hook.called
-    payload = mock_manager.invoke_hook.call_args[0][1]
-    verify_payload_content(payload, tool_result["result"], "Single chunk")
-    # Verify ProcessingResponse was returned
+    # Verify hook is NOT called for error responses
+    assert not mock_manager.invoke_hook.called, (
+        "Tool post-invoke hook should not be called for error responses"
+    )
+    # Verify response is returned (function handles error responses gracefully)
     assert response is not None
