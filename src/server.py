@@ -18,7 +18,6 @@ from mcpgateway.plugins.framework import (
     PromptPrehookPayload,
     ToolPostInvokePayload,
     ToolPreInvokePayload,
-    PluginViolation,
 )
 
 from mcpgateway.plugins.framework import PluginManager
@@ -42,6 +41,56 @@ logger.setLevel(log_level)
 def set_result_in_body(body, result_args):
     """Set the result arguments in the request body."""
     body["params"]["arguments"] = result_args
+
+
+def create_mcp_immediate_error_response(body, error_message, violation=None):
+    """
+    Create an MCP error response using immediate_response.
+
+    This helper creates a standardized error response that can be used
+    for both pre-invoke and post-invoke blocking scenarios.
+
+    Args:
+        body: The original request/response body containing jsonrpc and id
+        error_message: Base error message
+        violation: Optional PluginViolation with reason and description
+
+    Returns:
+        ProcessingResponse with immediate_response containing the error
+    """
+    # Build error message with violation details if present
+    if violation is not None:
+        error_message = f"{violation.reason} -- {violation.description}"
+
+    error_body = {
+        "jsonrpc": body["jsonrpc"],
+        "id": body["id"],
+        "error": {"code": -32000, "message": error_message},
+    }
+
+    return ep.ProcessingResponse(
+        immediate_response=ep.ImmediateResponse(
+            # Use 200 status with error in body for MCP protocol compatibility
+            status=http_status_pb2.HttpStatus(code=200),
+            headers=ep.HeaderMutation(
+                set_headers=[
+                    core.HeaderValueOption(
+                        header=core.HeaderValue(
+                            key="content-type",
+                            raw_value="application/json".encode("utf-8"),
+                        )
+                    ),
+                    core.HeaderValueOption(
+                        header=core.HeaderValue(
+                            key="x-mcp-denied",
+                            raw_value="True".encode("utf-8"),
+                        )
+                    ),
+                ],
+            ),
+            body=(json.dumps(error_body)).encode("utf-8"),
+        )
+    )
 
 
 # ============================================================================
@@ -73,37 +122,10 @@ async def getToolPreInvokeResponse(body):
     )
     logger.debug(f"**** Tool Pre Invoke Result: {result} ****")
     if not result.continue_processing:
-        error_message = "No go - Tool args forbidden"
-        if result.violation is not None:
-            violation: PluginViolation = result.violation
-            error_message = f"{violation.reason} -- {violation.description}"
-        error_body = {
-            "jsonrpc": body["jsonrpc"],
-            "id": body["id"],
-            "error": {"code": -32000, "message": error_message},
-        }
-        body_resp = ep.ProcessingResponse(
-            immediate_response=ep.ImmediateResponse(
-                # ok for stream, with error in body
-                status=http_status_pb2.HttpStatus(code=200),
-                headers=ep.HeaderMutation(
-                    set_headers=[
-                        core.HeaderValueOption(
-                            header=core.HeaderValue(
-                                key="content-type",
-                                raw_value="application/json".encode("utf-8"),
-                            )
-                        ),
-                        core.HeaderValueOption(
-                            header=core.HeaderValue(
-                                key="x-mcp-denied",
-                                raw_value="True".encode("utf-8"),
-                            )
-                        ),
-                    ],
-                ),
-                body=(json.dumps(error_body)).encode("utf-8"),
-            )
+        body_resp = create_mcp_immediate_error_response(
+            body,
+            error_message="No go - Tool args forbidden",
+            violation=result.violation,
         )
     else:
         logger.debug("continue_processing true")
@@ -149,46 +171,12 @@ async def getToolPostInvokeResponse(body):
     )
     logger.debug(f"**** Tool Post Invoke result {result}")
     if not result.continue_processing:
-        # Build error message
-        error_message = "Tool response forbidden"
-        if result.violation is not None:
-            violation: PluginViolation = result.violation
-            error_message = f"{violation.reason} -- {violation.description}"
-
-        error_body = {
-            "jsonrpc": body["jsonrpc"],
-            "id": body["id"],
-            "error": {"code": -32000, "message": error_message},
-        }
-
         # In STREAMED mode, we attempt to use immediate_response to terminate early
         # This may fail if response headers have already been sent
-        logger.warning(
-            "Tool post-invoke blocking in STREAMED mode - may be unreliable. "
-            "Consider using BUFFERED mode or moving validation to pre-invoke hooks."
-        )
-        body_resp = ep.ProcessingResponse(
-            immediate_response=ep.ImmediateResponse(
-                # Use 200 status with error in body for MCP protocol compatibility
-                status=http_status_pb2.HttpStatus(code=200),
-                headers=ep.HeaderMutation(
-                    set_headers=[
-                        core.HeaderValueOption(
-                            header=core.HeaderValue(
-                                key="content-type",
-                                raw_value="application/json".encode("utf-8"),
-                            )
-                        ),
-                        core.HeaderValueOption(
-                            header=core.HeaderValue(
-                                key="x-mcp-denied",
-                                raw_value="True".encode("utf-8"),
-                            )
-                        ),
-                    ],
-                ),
-                body=(json.dumps(error_body)).encode("utf-8"),
-            )
+        body_resp = create_mcp_immediate_error_response(
+            body,
+            error_message="Tool response forbidden",
+            violation=result.violation,
         )
     else:
         result_payload = result.modified_payload
@@ -225,13 +213,10 @@ async def getPromptPreFetchResponse(body):
     )
     logger.info(result)
     if not result.continue_processing:
-        body_resp = ep.ProcessingResponse(
-            immediate_response=ep.ImmediateResponse(
-                status=http_status_pb2.HttpStatus(
-                    code=http_status_pb2.Forbidden
-                ),
-                details="No go",
-            )
+        body_resp = create_mcp_immediate_error_response(
+            body,
+            error_message="Tool response forbidden",
+            violation=result.violation,
         )
     else:
         body["params"]["arguments"] = result.modified_payload.args
