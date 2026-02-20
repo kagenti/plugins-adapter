@@ -115,9 +115,10 @@ PLATFORM ?= linux/$(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 container-build:
 	@echo "🔨 Building with $(CONTAINER_RUNTIME) for platform $(PLATFORM)..."
-	$(CONTAINER_RUNTIME) build \
+	@echo "📁 Using parent directory as build context to include nemocheck plugin..."
+	cd .. && $(CONTAINER_RUNTIME) build \
 		--platform=$(PLATFORM) \
-		-f $(CONTAINER_FILE) \
+		-f nemocheck_external/$(CONTAINER_FILE) \
 		--tag $(IMAGE_BASE):$(IMAGE_TAG) \
 		.
 	@echo "✅ Built image: $(call get_image_name)"
@@ -418,7 +419,7 @@ load: container-build
 	kind load docker-image  $(IMAGE_BASE):$(IMAGE_TAG) --name mcp-gateway
 
 .PHONY: redeploy
-redeploy: 
+redeploy:
 	-kubectl delete -f k8deploy/deploy.yaml
 	kubectl apply -f k8deploy/deploy.yaml
 
