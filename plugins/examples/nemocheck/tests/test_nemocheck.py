@@ -59,7 +59,7 @@ async def test_prompt_pre_fetch(plugin, context):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "status_code,response_data,expected_continue,has_violation",
+    "status_code,response_data,expected_continue,has_violation,expected_code",
     [
         (
             200,
@@ -71,6 +71,7 @@ async def test_prompt_pre_fetch(plugin, context):
             },
             True,
             False,
+            None,
         ),
         (
             200,
@@ -80,8 +81,9 @@ async def test_prompt_pre_fetch(plugin, context):
             },
             False,
             True,
+            "NEMO_RAILS_BLOCKED",
         ),
-        (503, None, False, True),
+        (503, None, False, True, "NEMO_SERVER_ERROR"),
     ],
 )
 async def test_tool_pre_invoke_scenarios(
@@ -91,8 +93,9 @@ async def test_tool_pre_invoke_scenarios(
     response_data,
     expected_continue,
     has_violation,
+    expected_code,
 ):
-    """Test tool_pre_invoke with various scenarios."""
+    """Test tool_pre_invoke with various scenarios including error codes."""
     payload = ToolPreInvokePayload(
         name="test_tool",
         args={"tool_args": '{"param": "value"}'},
@@ -106,11 +109,13 @@ async def test_tool_pre_invoke_scenarios(
 
     assert result.continue_processing == expected_continue
     assert (result.violation is not None) == has_violation
+    if has_violation:
+        assert result.violation.code == expected_code
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "status_code,response_data,expected_continue,has_violation",
+    "status_code,response_data,expected_continue,has_violation,expected_code",
     [
         (
             200,
@@ -122,6 +127,7 @@ async def test_tool_pre_invoke_scenarios(
             },
             True,
             False,
+            None,
         ),
         (
             200,
@@ -131,8 +137,9 @@ async def test_tool_pre_invoke_scenarios(
             },
             False,
             True,
+            "NEMO_RAILS_BLOCKED",
         ),
-        (500, None, False, True),
+        (500, None, False, True, "NEMO_SERVER_ERROR"),
     ],
 )
 async def test_tool_post_invoke_http_scenarios(
@@ -142,8 +149,9 @@ async def test_tool_post_invoke_http_scenarios(
     response_data,
     expected_continue,
     has_violation,
+    expected_code,
 ):
-    """Test tool_post_invoke with various HTTP response scenarios."""
+    """Test tool_post_invoke with various HTTP response scenarios including error codes."""
     payload = ToolPostInvokePayload(
         name="test_tool",
         result={"content": [{"type": "text", "text": "Test content"}]},
@@ -157,6 +165,8 @@ async def test_tool_post_invoke_http_scenarios(
 
     assert result.continue_processing == expected_continue
     assert (result.violation is not None) == has_violation
+    if has_violation:
+        assert result.violation.code == expected_code
 
 
 @pytest.mark.asyncio
@@ -230,15 +240,35 @@ async def test_tool_post_invoke_filters_non_text(plugin, context):
 
 
 @pytest.mark.asyncio
-async def test_tool_post_invoke_fails_open_on_exception(plugin, context):
-    """Test tool_post_invoke fails open on exceptions."""
-    payload = ToolPostInvokePayload(
-        name="test_tool",
-        result={"content": [{"type": "text", "text": "content"}]},
-    )
+@pytest.mark.parametrize(
+    "hook_name,payload_factory",
+    [
+        (
+            "tool_pre_invoke",
+            lambda: ToolPreInvokePayload(
+                name="test_tool", args={"tool_args": '{"param": "value"}'}
+            ),
+        ),
+        (
+            "tool_post_invoke",
+            lambda: ToolPostInvokePayload(
+                name="test_tool",
+                result={"content": [{"type": "text", "text": "content"}]},
+            ),
+        ),
+    ],
+)
+async def test_connection_error_handling(
+    plugin, context, hook_name, payload_factory
+):
+    """Test both hooks fail closed on connection errors with NEMO_CONNECTION_ERROR code."""
+    payload = payload_factory()
+    hook = getattr(plugin, hook_name)
 
     with patch("plugin.requests.post", side_effect=Exception("Network error")):
-        result = await plugin.tool_post_invoke(payload, context)
+        result = await hook(payload, context)
 
-    assert result.continue_processing
-    assert result.violation is None
+    assert not result.continue_processing
+    assert result.violation is not None
+    assert result.violation.code == "NEMO_CONNECTION_ERROR"
+    assert "Network error" in result.violation.description

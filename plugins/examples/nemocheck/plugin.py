@@ -153,7 +153,7 @@ class NemoCheck(Plugin):
                     violation = PluginViolation(
                         reason=f"Check tool rails:{status}.",
                         description=json.dumps(data),
-                        code=f"checkserver_http_status_code:{response.status_code}",
+                        code="NEMO_RAILS_BLOCKED",
                         details=metadata,
                     )
                     return ToolPreInvokeResult(
@@ -164,9 +164,9 @@ class NemoCheck(Plugin):
             else:
                 violation = PluginViolation(
                     reason="Tool Check Unavailable",
-                    description="Tool arguments check server returned error",
-                    code=f"checkserver_http_status_code:{response.status_code}",
-                    details={},
+                    description=f"Tool arguments check server returned error. Status code: {response.status_code}, Response: {response.text}",
+                    code="NEMO_SERVER_ERROR",
+                    details={"status_code": response.status_code},
                 )
                 return ToolPreInvokeResult(
                     continue_processing=False, violation=violation
@@ -177,8 +177,8 @@ class NemoCheck(Plugin):
             violation = PluginViolation(
                 reason="Tool Check Error",
                 description=f"Failed to connect to check server: {str(e)}",
-                code="checkserver_connection_error",
-                details={},
+                code="NEMO_CONNECTION_ERROR",
+                details={"error": str(e)},
             )
             return ToolPreInvokeResult(
                 continue_processing=False, violation=violation
@@ -248,9 +248,9 @@ class NemoCheck(Plugin):
                 else:  # blocked
                     metadata = data.get("rails_status")
                     violation = PluginViolation(
-                        reason=f"Tool response check status: {status}",
-                        description="Rails check blocked tool response",
-                        code=f"checkserver_http_status_code:{response.status_code}",
+                        reason=f"Check tool rails:{status}.",
+                        description=json.dumps(data),
+                        code="NEMO_RAILS_BLOCKED",
                         details=metadata,
                     )
                     result = ToolPostInvokeResult(
@@ -260,10 +260,10 @@ class NemoCheck(Plugin):
                     )
             else:
                 violation = PluginViolation(
-                    reason="Tool response check unavailable",
-                    description="Tool response check server returned error",
-                    code=f"checkserver_http_status_code:{response.status_code}",
-                    details={},
+                    reason="Tool Check Unavailable",
+                    description=f"Tool response check server returned error. Status code: {response.status_code}, Response: {response.text}",
+                    code="NEMO_SERVER_ERROR",
+                    details={"status_code": response.status_code},
                 )
                 result = ToolPostInvokeResult(
                     continue_processing=False, violation=violation
@@ -274,6 +274,12 @@ class NemoCheck(Plugin):
 
         except Exception as e:
             logger.error(f"[NemoCheck] Error checking tool response: {e}")
+            violation = PluginViolation(
+                reason="Tool Check Error",
+                description=f"Failed to connect to check server: {str(e)}",
+                code="NEMO_CONNECTION_ERROR",
+                details={"error": str(e)},
+            )
             return ToolPostInvokeResult(
-                continue_processing=True
-            )  # Fail open on error
+                continue_processing=False, violation=violation
+            )
