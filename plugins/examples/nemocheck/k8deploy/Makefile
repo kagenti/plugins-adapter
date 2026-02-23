@@ -8,9 +8,8 @@ DOCKER_COMMAND := $(shell { command -v docker || command -v podman; } 2>/dev/nul
 
 
 load:
-	docker pull quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1
-	kind load docker-image quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1 --name mcp-gateway
-
+	docker pull quay.io/opendatahub/odh-trustyai-nemo-guardrails-server:latest
+	kind load docker-image quay.io/opendatahub/odh-trustyai-nemo-guardrails-server:latest --name mcp-gateway
 
 deploy:
 	-kubectl delete -f server.yaml

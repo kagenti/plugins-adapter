@@ -20,7 +20,8 @@ spec:
         - secretRef:
             name: rits-api-key
       - name: nemo-guardrails
-        image: quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1
+        # Note: Specific tags can be found at https://quay.io/repository/opendatahub/odh-trustyai-nemo-guardrails-server?tab=tags
+        image: quay.io/opendatahub/odh-trustyai-nemo-guardrails-server:latest
         imagePullPolicy: IfNotPresent
         env:
         - name: CONFIG_ID
