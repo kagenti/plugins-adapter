@@ -178,20 +178,23 @@ async def getToolPostInvokeResponse(body):
             error_message="Tool response forbidden",
             violation=result.violation,
         )
-    else:
-        result_payload = result.modified_payload
-        if result_payload is not None:
-            body["result"] = result_payload.result
-            body_mutation = ep.BodyResponse(
-                response=ep.CommonResponse(
-                    body_mutation=ep.BodyMutation(
-                        body=json.dumps(body).encode("utf-8")
-                    )
+        logger.info(f"****Tool Post Invoke Return body: {body_resp}****")
+        return body_resp
+
+    # Continue processing - allow or modify the response
+    result_payload = result.modified_payload
+    if result_payload is not None:
+        body["result"] = result_payload.result
+        body_mutation = ep.BodyResponse(
+            response=ep.CommonResponse(
+                body_mutation=ep.BodyMutation(
+                    body=json.dumps(body).encode("utf-8")
                 )
             )
-        else:
-            body_mutation = ep.BodyResponse(response=ep.CommonResponse())
-        body_resp = ep.ProcessingResponse(response_body=body_mutation)
+        )
+    else:
+        body_mutation = ep.BodyResponse(response=ep.CommonResponse())
+    body_resp = ep.ProcessingResponse(response_body=body_mutation)
     logger.info(f"****Tool Post Invoke Return body: {body_resp}****")
     return body_resp
 
