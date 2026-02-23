@@ -11,8 +11,8 @@ This is an external plugin deployment for the NemoCheck guardrails adapter. It r
 
 ## Run plugin in kind cluster
 
- 1. Run Nemo Guardrails check server. Instructions are the same as in the internal plugin [here](../nemocheck/README.md#prerequisites-nemo-check-server)
- 1. Update `CHECK_ENDPOINT` variable in [k8deploy/deploy.yaml](./k8deploy/deploy.yaml) to point to guardrails check server endpoint
+ 1. Run NeMo Guardrails check server. Instructions are the same as in the internal plugin [here](../nemocheck/README.md#prerequisites-nemo-guardrails-server)
+ 1. Update `DEFAULT_GUARDRAILS_SERVER_URL` variable in [k8deploy/deploy.yaml](./k8deploy/deploy.yaml) to point to guardrails check server endpoint
 
     ```bash
     cd plugins-adapter/plugins/examples/nemocheck_external

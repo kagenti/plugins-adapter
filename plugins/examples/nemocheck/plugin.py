@@ -36,9 +36,10 @@ logger.setLevel(log_level)
 MODEL_NAME = os.getenv(
     "NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct"
 )  # Currently only for logging.
-DEFAULT_CHECK_ENDPOINT = os.getenv(
-    "CHECK_ENDPOINT", "http://nemo-guardrails-service:8000/v1/guardrail/checks"
+DEFAULT_GUARDRAILS_SERVER_URL = os.getenv(
+    "GUARDRAILS_SERVER_URL", "http://nemo-guardrails-service:8000"
 )
+CHECK_PATH = "/v1/guardrail/checks"
 HEADERS = {
     "Content-Type": "application/json",
 }
@@ -54,18 +55,23 @@ class NemoCheck(Plugin):
             config: The plugin configuration
         """
         super().__init__(config)
-        # Allow config to override the endpoint
+        # Allow config to override the server URL
         # Handle case where config.config might be None or empty
         if config.config and isinstance(config.config, dict):
-            self.check_endpoint = config.config.get(
-                "checkserver_url", DEFAULT_CHECK_ENDPOINT
+            server_url = config.config.get(
+                "nemo_guardrails_url", DEFAULT_GUARDRAILS_SERVER_URL
             )
         else:
-            self.check_endpoint = DEFAULT_CHECK_ENDPOINT
+            server_url = DEFAULT_GUARDRAILS_SERVER_URL
             logger.warning(
-                "Plugin config is empty or invalid, using default endpoint"
+                "Plugin config is empty or invalid, using default server URL"
             )
-        logger.info(f"Nemo Check endpoint: {self.check_endpoint}")
+
+        # Construct full endpoint URL
+        self.check_endpoint = server_url.rstrip("/") + CHECK_PATH
+        logger.info(
+            f"NeMo Guardrails endpoint for check plugin: {self.check_endpoint}"
+        )
 
     async def prompt_pre_fetch(
         self, payload: PromptPrehookPayload, context: PluginContext

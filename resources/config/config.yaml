@@ -44,7 +44,7 @@ plugins:
     version: "0.1.0"
     author: "Julian Stephen"
     config:
-      checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"
+      nemo_guardrails_url: "http://nemo-guardrails-service:8000"
 
 # Plugin directories to scan
 plugin_dirs:
