@@ -1,7 +1,7 @@
 plugins:
   - name: "NemoCheck"
-    kind: "nemocheck.plugin.NemoCheck"
-    description: "Adapter for Nemo-Check guardrails"
+    kind: "plugins.examples.nemocheck.plugin.NemoCheck"
+    description: "Nemo Check Adapter"
     version: "0.1.0"
     author: "julianstephen"
     hooks: ["prompt_pre_fetch", "prompt_post_fetch", "tool_pre_invoke", "tool_post_invoke"]

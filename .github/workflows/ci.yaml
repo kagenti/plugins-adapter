@@ -42,13 +42,11 @@ jobs:
             git diff --stat
             exit 1
           }
-      - name: Install nemocheck external plugin dependencies
+      - name: Install nemocheck plugin dependencies
         working-directory: ./plugins/examples/nemocheck
         run: |
-          echo "Running nemocheck ext plugin tests.."
+          echo "Running nemocheck plugin tests.."
           uv sync --all-groups
-      - name: Run nemocheck external plugin tests
+      - name: Run nemocheck plugin tests
         working-directory: ./plugins/examples/nemocheck
-        run: uv run pytest tests 
-          
-      # - name: Test
+        run: uv run pytest tests

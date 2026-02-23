@@ -1,0 +1,33 @@
+# ----------------------------------------------------------------
+# 💡 Build system (PEP 517)
+#     - setuptools ≥ 77 gives SPDX licence support (PEP 639)
+#     - wheel is needed by most build front-ends
+# ----------------------------------------------------------------
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# ----------------------------------------------------------------
+# 📦 Core project metadata (PEP 621)
+# ----------------------------------------------------------------
+[project]
+name = "nemocheck_external"
+version = "0.1.0"
+description = "NemoCheck external plugin"
+requires-python = ">=3.11,<3.14"
+
+dependencies = [
+    "mcp>=1.16.0",
+    "mcp-contextforge-gateway",
+]
+
+[tool.uv.sources]
+mcp-contextforge-gateway = { git = "https://github.com/IBM/mcp-context-forge.git", rev = "main" }
+
+# --------------------------------------------------------------------
+#  🔧 setuptools-specific configuration
+# --------------------------------------------------------------------
+[tool.setuptools]
+# No packages - this is just a runtime environment
+# Plugin code comes from the nemocheck package
+packages = []
