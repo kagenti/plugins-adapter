@@ -48,9 +48,13 @@ async def test_prompt_pre_hook(plugin_manager: PluginManager):
 async def test_prompt_post_hook(plugin_manager: PluginManager):
     """Test prompt post hook across all registered plugins."""
     # Customize payload for testing
-    message = Message(content=TextContent(type="text", text="prompt"), role=Role.USER)
+    message = Message(
+        content=TextContent(type="text", text="prompt"), role=Role.USER
+    )
     prompt_result = PromptResult(messages=[message])
-    payload = PromptPosthookPayload(prompt_id="test_prompt", result=prompt_result)
+    payload = PromptPosthookPayload(
+        prompt_id="test_prompt", result=prompt_result
+    )
     global_context = GlobalContext(request_id="1")
     result, _ = await plugin_manager.invoke_hook(
         PromptHookType.PROMPT_POST_FETCH, payload, global_context

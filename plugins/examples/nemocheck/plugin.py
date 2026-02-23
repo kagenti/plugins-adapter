@@ -62,7 +62,9 @@ class NemoCheck(Plugin):
             )
         else:
             self.check_endpoint = DEFAULT_CHECK_ENDPOINT
-            logger.warning("Plugin config is empty or invalid, using default endpoint")
+            logger.warning(
+                "Plugin config is empty or invalid, using default endpoint"
+            )
         logger.info(f"Nemo Check endpoint: {self.check_endpoint}")
 
     async def prompt_pre_fetch(
@@ -105,9 +107,11 @@ class NemoCheck(Plugin):
         Returns:
             The result of the plugin's analysis, including whether the tool can proceed.
         """
-        logger.info("tool_pre_invoke....")
-        logger.info(payload)
-        tool_name = payload.name  # ("tool_name", None)
+        logger.info(
+            f"[NemoCheck] Starting tool pre invoke hook with payload {payload}"
+        )
+
+        tool_name = payload.name
         check_nemo_payload = {
             "model": MODEL_NAME,
             "messages": [
@@ -119,7 +123,9 @@ class NemoCheck(Plugin):
                             "type": "function",
                             "function": {
                                 "name": tool_name,
-                                "arguments": payload.args.get("tool_args", None),
+                                "arguments": payload.args.get(
+                                    "tool_args", None
+                                ),
                             },
                         }
                     ],
@@ -135,7 +141,7 @@ class NemoCheck(Plugin):
             if response.status_code == 200:
                 data = response.json()
                 status = data.get("status", "blocked")
-                logger.debug(f"rails reply: {data}")
+                logger.debug(f"[NemoCheck] Rails reply: {data}")
 
                 if status == "success":
                     metadata = data.get("rails_status")
@@ -147,7 +153,7 @@ class NemoCheck(Plugin):
                     violation = PluginViolation(
                         reason=f"Check tool rails:{status}.",
                         description=json.dumps(data),
-                        code=f"checkserver_http_status_code:{response.status_code}",
+                        code="NEMO_RAILS_BLOCKED",
                         details=metadata,
                     )
                     return ToolPreInvokeResult(
@@ -158,23 +164,25 @@ class NemoCheck(Plugin):
             else:
                 violation = PluginViolation(
                     reason="Tool Check Unavailable",
-                    description="Tool arguments check server returned error",
-                    code=f"checkserver_http_status_code:{response.status_code}",
-                    details={},
+                    description=f"Tool arguments check server returned error. Status code: {response.status_code}, Response: {response.text}",
+                    code="NEMO_SERVER_ERROR",
+                    details={"status_code": response.status_code},
                 )
                 return ToolPreInvokeResult(
                     continue_processing=False, violation=violation
                 )
 
         except Exception as e:
-            logger.error(f"Error calling Nemo Check endpoint: {e}")
+            logger.error(f"[NemoCheck] Error checking tool arguments: {e}")
             violation = PluginViolation(
                 reason="Tool Check Error",
                 description=f"Failed to connect to check server: {str(e)}",
-                code="checkserver_connection_error",
-                details={},
+                code="NEMO_CONNECTION_ERROR",
+                details={"error": str(e)},
             )
-            return ToolPreInvokeResult(continue_processing=False, violation=violation)
+            return ToolPreInvokeResult(
+                continue_processing=False, violation=violation
+            )
 
     async def tool_post_invoke(
         self, payload: ToolPostInvokePayload, context: PluginContext
@@ -188,4 +196,90 @@ class NemoCheck(Plugin):
         Returns:
             The result of the plugin's analysis, including whether the tool result should proceed.
         """
-        return ToolPostInvokeResult(continue_processing=True)
+        logger.info(
+            f"[NemoCheck] Starting tool post invoke hook with payload {payload}"
+        )
+
+        # Extract content from payload.result
+        # payload.result format: {'content': [{'type': 'text', 'text': 'Hello, bob!'}]}
+        result_content = payload.result.get("content", [])
+        tool_name = payload.name
+
+        if not result_content:
+            logger.warning(
+                "[NemoCheck] No content in tool result, skipping check"
+            )
+            return ToolPostInvokeResult(continue_processing=True)
+
+        # Extract text content from the content array
+        # TODO: what to do if there's actually multiple texts?
+        text_content = ""
+        for item in result_content:
+            if item.get("type") == "text":
+                text_content += item.get("text", "")
+
+        # Build NeMo check payload for tool response
+        check_nemo_payload = {
+            "model": MODEL_NAME,  # ideally optional
+            "messages": [
+                {"role": "tool", "content": text_content, "name": tool_name}
+            ],
+        }
+
+        logger.debug(
+            f"[NemoCheck] Payload for guardrail check: {check_nemo_payload}"
+        )
+
+        violation = None
+        try:
+            response = requests.post(
+                self.check_endpoint, headers=HEADERS, json=check_nemo_payload
+            )
+            if response.status_code == 200:
+                data = response.json()
+                status = data.get("status", "blocked")
+                logger.debug(f"[NemoCheck] Rails reply: {data}")
+
+                if status == "success":
+                    metadata = data.get("rails_status")
+                    result = ToolPostInvokeResult(
+                        continue_processing=True, metadata=metadata
+                    )
+                else:  # blocked
+                    metadata = data.get("rails_status")
+                    violation = PluginViolation(
+                        reason=f"Check tool rails:{status}.",
+                        description=json.dumps(data),
+                        code="NEMO_RAILS_BLOCKED",
+                        details=metadata,
+                    )
+                    result = ToolPostInvokeResult(
+                        continue_processing=False,
+                        violation=violation,
+                        metadata=metadata,
+                    )
+            else:
+                violation = PluginViolation(
+                    reason="Tool Check Unavailable",
+                    description=f"Tool response check server returned error. Status code: {response.status_code}, Response: {response.text}",
+                    code="NEMO_SERVER_ERROR",
+                    details={"status_code": response.status_code},
+                )
+                result = ToolPostInvokeResult(
+                    continue_processing=False, violation=violation
+                )
+
+            logger.info(f"[NemoCheck] Tool post invoke result: {result}")
+            return result
+
+        except Exception as e:
+            logger.error(f"[NemoCheck] Error checking tool response: {e}")
+            violation = PluginViolation(
+                reason="Tool Check Error",
+                description=f"Failed to connect to check server: {str(e)}",
+                code="NEMO_CONNECTION_ERROR",
+                details={"error": str(e)},
+            )
+            return ToolPostInvokeResult(
+                continue_processing=False, violation=violation
+            )
