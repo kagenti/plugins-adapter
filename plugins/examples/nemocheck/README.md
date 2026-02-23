@@ -32,7 +32,7 @@ make deploy
           nemo_guardrails_url: "http://nemo-guardrails-service:8000"
     # Plugin directories to scan
     plugin_dirs:
-      - "plugins/examples/nemocheck"    # NeMo Guardrails plugins
+      - "plugins/examples/nemocheck"    # Nemo Check Server plugins
     ```
 
 1. In `config.yaml` ensure key `plugins.config.nemo_guardrails_url` points to the correct service
