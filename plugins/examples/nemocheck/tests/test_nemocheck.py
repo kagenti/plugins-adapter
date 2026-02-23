@@ -66,7 +66,7 @@ async def test_prompt_pre_fetch(plugin, context):
             {
                 "status": "success",
                 "rails_status": {
-                    "detect senstitive data": {"status": "success"}
+                    "detect sensitive data": {"status": "success"}
                 },
             },
             True,
@@ -122,7 +122,7 @@ async def test_tool_pre_invoke_scenarios(
             {
                 "status": "success",
                 "rails_status": {
-                    "detect senstitive data": {"status": "success"}
+                    "detect sensitive data": {"status": "success"}
                 },
             },
             True,

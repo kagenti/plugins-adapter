@@ -3,12 +3,12 @@
 This directory contains the core `NemoCheck` plugin implementation used by both internal and external plugins.
 
 ## Prerequisites: Nemo-check server
- * Refer to [orignal repo](https://github.com/m-misiura/demos/tree/main/nemo_openshift/guardrail-checks/deployment) for full instructions
+ * Refer to [original repo](https://github.com/m-misiura/demos/tree/main/nemo_openshift/guardrail-checks/deployment) for full instructions
  * Instructions are adapted for the `mcp-gateway` kind cluster to work with an LLM proxy routing to an OpenAI-compatible backend below:
 
 ```bash
-docker pull quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1
-kind load docker-image quay.io/rh-ee-mmisiura/nemo-guardrails:guardrails_checks_with_tools_o1_v1 --name mcp-gateway
+docker pull quay.io/opendatahub/odh-trustyai-nemo-guardrails-server:latest
+kind load docker-image quay.io/opendatahub/odh-trustyai-nemo-guardrails-server:latest --name mcp-gateway
 cd plugins-adapter/plugins/examples/nemocheck/k8deploy
 make deploy
 ```

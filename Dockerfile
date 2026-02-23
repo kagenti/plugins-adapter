@@ -1,4 +1,3 @@
-# Super simple Dockerfile
 #FROM python:3.12.12
 FROM public.ecr.aws/docker/library/python:3.12.12-slim
 
@@ -19,6 +18,7 @@ RUN mkdir -p src/resources
 
 COPY src/ ./src/
 COPY resources ./src/resources/
+# This can be restricted to particular "built-in" example plugins
 COPY plugins ./plugins/
 
 # Expose the gRPC port
