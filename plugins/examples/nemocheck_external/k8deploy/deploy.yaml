@@ -33,8 +33,8 @@ spec:
           env:
             - name: MODEL_NAME # Currently only for logging.
               value: "meta-llama/llama-3-3-70b-instruct"
-            - name: CHECK_ENDPOINT
-              value: "http://nemo-guardrails-service:8000/v1/guardrail/checks"
+            - name: DEFAULT_GUARDRAILS_SERVER_URL
+              value: "http://nemo-guardrails-service:8000"
             - name: PLUGINS_SERVER_HOST
               value: "0.0.0.0"
             - name: PLUGINS_ENABLED

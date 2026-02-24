@@ -11,7 +11,7 @@ plugins:
     mode: "enforce"  # enforce | permissive | disabled
     priority: 150
     config:
-      checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"
+      nemo_guardrails_url: "http://nemo-guardrails-service:8000"
 
 # Plugin directories to scan
 plugin_dirs:

@@ -2,8 +2,9 @@
 
 This directory contains the core `NemoCheck` plugin implementation used by both internal and external plugins.
 
-## Prerequisites: Nemo-check server
- * Refer to [original repo](https://github.com/m-misiura/demos/tree/main/nemo_openshift/guardrail-checks/deployment) for full instructions
+## Prerequisites: NeMo Guardrails Server
+ * The NeMo Guardrails server must provide the `/v1/guardrail/checks` endpoint for this plugin to function.
+ * Refer to the [original repo](https://github.com/m-misiura/demos/tree/main/nemo_openshift/guardrail-checks/deployment) for full instructions.
  * Instructions are adapted for the `mcp-gateway` kind cluster to work with an LLM proxy routing to an OpenAI-compatible backend below:
 
 ```bash
@@ -15,7 +16,7 @@ make deploy
 
 ## Installation
 
-1. Find url of nemo-check-server service. E.g., from svc in `server.yaml`
+1. Find url of nemo-guardrails-server service. E.g., from svc in `server.yaml`
 1. Update `${project_root}/resources/config/config.yaml`. Add the blob below, merge if other `plugin`s or `plugin_dir`s already exists. Sample file [here](/resources/config/nemocheck-internal-config.yaml)
 
     ```yaml
@@ -28,13 +29,13 @@ make deploy
         hooks: ["tool_pre_invoke", "tool_post_invoke"]
         mode: "enforce"  # enforce | permissive | disabled
         config:
-          checkserver_url: "http://nemo-guardrails-service:8000/v1/guardrail/checks"
+          nemo_guardrails_url: "http://nemo-guardrails-service:8000"
     # Plugin directories to scan
     plugin_dirs:
       - "plugins/examples/nemocheck"    # Nemo Check Server plugins
     ```
 
-1. In `config.yaml` ensure key `plugins.config.checkserver_url` points to the correct service
+1. In `config.yaml` ensure key `plugins.config.nemo_guardrails_url` points to the correct service
 1. Start plugin adapter
 
 ## Testing

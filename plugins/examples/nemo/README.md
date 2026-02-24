@@ -1,4 +1,4 @@
-# Nemo guardrails internal plugin example
+# NeMo guardrails internal plugin example
 
 The `NemoWrapperPlugin` in `nemo_wrapper_plugin.py` currently invokes the simple flow in `pii_detect_config` which leverages an ollama model through `host.docker.internal`. The model can be easily replaced in the `config.yml`.
 
