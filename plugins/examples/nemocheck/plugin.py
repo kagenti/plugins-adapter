@@ -166,7 +166,7 @@ class NemoCheck(Plugin):
                     )
                     violation = PluginViolation(
                         reason=f"Tool request check failed: {status}",
-                        description=f"Tool request blocked. {rails_info}",
+                        description=f"{rails_info}",
                         code="NEMO_RAILS_BLOCKED",
                         details=metadata,
                         mcp_error_code=-32602,  # Invalid params
@@ -273,7 +273,7 @@ class NemoCheck(Plugin):
                     )
                     violation = PluginViolation(
                         reason=f"Tool response check failed: {status}",
-                        description=f"Tool response blocked. {rails_info}",
+                        description=f"{rails_info}",
                         code="NEMO_RAILS_BLOCKED",
                         details=metadata,
                         mcp_error_code=-32603,  # Internal error for invalid tool response
