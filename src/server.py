@@ -62,10 +62,15 @@ def create_mcp_immediate_error_response(body, error_message, violation=None):
     if violation is not None:
         error_message = f"{violation.reason} -- {violation.description}"
 
+    # Use mcp_error_code from violation if present
+    error_code = -32000  # Otherwise default: generic server error
+    if violation is not None and violation.mcp_error_code is not None:
+        error_code = violation.mcp_error_code
+
     error_body = {
         "jsonrpc": body["jsonrpc"],
         "id": body["id"],
-        "error": {"code": -32000, "message": error_message},
+        "error": {"code": error_code, "message": error_message},
     }
 
     return ep.ProcessingResponse(
