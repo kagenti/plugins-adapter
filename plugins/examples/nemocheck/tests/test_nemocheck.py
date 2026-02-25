@@ -272,3 +272,59 @@ async def test_connection_error_handling(
     assert result.violation is not None
     assert result.violation.code == "NEMO_CONNECTION_ERROR"
     assert "Network error" in result.violation.description
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "hook_name,payload_factory,expected_reason_prefix",
+    [
+        (
+            "tool_pre_invoke",
+            lambda: ToolPreInvokePayload(
+                name="test_tool", args={"tool_args": '{"param": "value"}'}
+            ),
+            "Tool request check failed",
+        ),
+        (
+            "tool_post_invoke",
+            lambda: ToolPostInvokePayload(
+                name="test_tool",
+                result={"content": [{"type": "text", "text": "content"}]},
+            ),
+            "Tool response check failed",
+        ),
+    ],
+)
+async def test_violation_includes_rail_names(
+    plugin, context, hook_name, payload_factory, expected_reason_prefix
+):
+    """Test that violation descriptions include the rail names from rails_status."""
+    payload = payload_factory()
+    hook = getattr(plugin, hook_name)
+
+    # Mock response with multiple rails
+    response_data = {
+        "status": "blocked",
+        "rails_status": {
+            "detect hap": {"status": "blocked"},
+            "detect sensitive data": {"status": "success"},
+        },
+    }
+
+    with patch(
+        "plugin.requests.post",
+        return_value=mock_http_response(200, response_data),
+    ):
+        result = await hook(payload, context)
+
+    assert not result.continue_processing
+    assert result.violation is not None
+    assert result.violation.code == "NEMO_RAILS_BLOCKED"
+
+    # Verify reason includes the expected prefix
+    assert result.violation.reason.startswith(expected_reason_prefix)
+
+    # Verify description includes rail names
+    assert "Rails:" in result.violation.description
+    assert "detect hap" in result.violation.description
+    assert "detect sensitive data" in result.violation.description

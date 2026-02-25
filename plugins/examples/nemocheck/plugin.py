@@ -26,7 +26,6 @@ from mcpgateway.plugins.framework import (
 import logging
 import os
 import requests
-import json
 
 # Initialize logging
 logger = logging.getLogger(__name__)
@@ -113,7 +112,7 @@ class NemoCheck(Plugin):
         Returns:
             The result of the plugin's analysis, including whether the tool can proceed.
         """
-        logger.info(
+        logger.debug(
             f"[NemoCheck] Starting tool pre invoke hook with payload {payload}"
         )
 
@@ -148,17 +147,26 @@ class NemoCheck(Plugin):
                 data = response.json()
                 status = data.get("status", "blocked")
                 logger.debug(f"[NemoCheck] Rails reply: {data}")
+                metadata = data.get("rails_status")
 
                 if status == "success":
-                    metadata = data.get("rails_status")
                     return ToolPreInvokeResult(
                         continue_processing=True, metadata=metadata
                     )
                 else:
-                    metadata = data.get("rails_status")
+                    logger.info(
+                        f"[NemoCheck] Tool request blocked. Full NeMo response: {data}"
+                    )
+                    # Extract rail names from rails_status for more informative description
+                    rails_run = list(metadata.keys()) if metadata else []
+                    rails_info = (
+                        f"Rails: {', '.join(rails_run)}"
+                        if rails_run
+                        else "No rails info"
+                    )
                     violation = PluginViolation(
-                        reason=f"Check tool rails:{status}.",
-                        description=json.dumps(data),
+                        reason=f"Tool request check failed: {status}",
+                        description=f"Tool request blocked. {rails_info}",
                         code="NEMO_RAILS_BLOCKED",
                         details=metadata,
                     )
@@ -170,7 +178,7 @@ class NemoCheck(Plugin):
             else:
                 violation = PluginViolation(
                     reason="Tool Check Unavailable",
-                    description=f"Tool arguments check server returned error. Status code: {response.status_code}, Response: {response.text}",
+                    description=f"Tool request check server returned error. Status code: {response.status_code}, Response: {response.text}",
                     code="NEMO_SERVER_ERROR",
                     details={"status_code": response.status_code},
                 )
@@ -179,7 +187,7 @@ class NemoCheck(Plugin):
                 )
 
         except Exception as e:
-            logger.error(f"[NemoCheck] Error checking tool arguments: {e}")
+            logger.error(f"[NemoCheck] Error checking tool request: {e}")
             violation = PluginViolation(
                 reason="Tool Check Error",
                 description=f"Failed to connect to check server: {str(e)}",
@@ -202,7 +210,7 @@ class NemoCheck(Plugin):
         Returns:
             The result of the plugin's analysis, including whether the tool result should proceed.
         """
-        logger.info(
+        logger.debug(
             f"[NemoCheck] Starting tool post invoke hook with payload {payload}"
         )
 
@@ -245,17 +253,26 @@ class NemoCheck(Plugin):
                 data = response.json()
                 status = data.get("status", "blocked")
                 logger.debug(f"[NemoCheck] Rails reply: {data}")
+                metadata = data.get("rails_status")
 
                 if status == "success":
-                    metadata = data.get("rails_status")
                     result = ToolPostInvokeResult(
                         continue_processing=True, metadata=metadata
                     )
                 else:  # blocked
-                    metadata = data.get("rails_status")
+                    logger.info(
+                        f"[NemoCheck] Tool response blocked. Full NeMo response: {data}"
+                    )
+                    # Extract rail names from rails_status for more informative description
+                    rails_run = list(metadata.keys()) if metadata else []
+                    rails_info = (
+                        f"Rails: {', '.join(rails_run)}"
+                        if rails_run
+                        else "No rails info"
+                    )
                     violation = PluginViolation(
-                        reason=f"Check tool rails:{status}.",
-                        description=json.dumps(data),
+                        reason=f"Tool response check failed: {status}",
+                        description=f"Tool response blocked. {rails_info}",
                         code="NEMO_RAILS_BLOCKED",
                         details=metadata,
                     )
