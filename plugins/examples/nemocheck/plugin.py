@@ -169,6 +169,7 @@ class NemoCheck(Plugin):
                         description=f"Tool request blocked. {rails_info}",
                         code="NEMO_RAILS_BLOCKED",
                         details=metadata,
+                        mcp_error_code=-32602,  # Invalid params
                     )
                     return ToolPreInvokeResult(
                         continue_processing=False,
@@ -275,6 +276,7 @@ class NemoCheck(Plugin):
                         description=f"Tool response blocked. {rails_info}",
                         code="NEMO_RAILS_BLOCKED",
                         details=metadata,
+                        mcp_error_code=-32603,  # Internal error for invalid tool response
                     )
                     result = ToolPostInvokeResult(
                         continue_processing=False,

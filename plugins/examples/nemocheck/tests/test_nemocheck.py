@@ -59,7 +59,7 @@ async def test_prompt_pre_fetch(plugin, context):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "status_code,response_data,expected_continue,has_violation,expected_code",
+    "status_code,response_data,expected_continue,has_violation,expected_code,expected_mcp_code",
     [
         (
             200,
@@ -72,6 +72,7 @@ async def test_prompt_pre_fetch(plugin, context):
             True,
             False,
             None,
+            None,
         ),
         (
             200,
@@ -82,8 +83,9 @@ async def test_prompt_pre_fetch(plugin, context):
             False,
             True,
             "NEMO_RAILS_BLOCKED",
+            -32602,  # Invalid params for tool request
         ),
-        (503, None, False, True, "NEMO_SERVER_ERROR"),
+        (503, None, False, True, "NEMO_SERVER_ERROR", None),
     ],
 )
 async def test_tool_pre_invoke_scenarios(
@@ -94,8 +96,9 @@ async def test_tool_pre_invoke_scenarios(
     expected_continue,
     has_violation,
     expected_code,
+    expected_mcp_code,
 ):
-    """Test tool_pre_invoke with various scenarios including error codes."""
+    """Test tool_pre_invoke with various scenarios including error codes and MCP error codes."""
     payload = ToolPreInvokePayload(
         name="test_tool",
         args={"tool_args": '{"param": "value"}'},
@@ -111,11 +114,12 @@ async def test_tool_pre_invoke_scenarios(
     assert (result.violation is not None) == has_violation
     if has_violation:
         assert result.violation.code == expected_code
+        assert result.violation.mcp_error_code == expected_mcp_code
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "status_code,response_data,expected_continue,has_violation,expected_code",
+    "status_code,response_data,expected_continue,has_violation,expected_code,expected_mcp_code",
     [
         (
             200,
@@ -128,6 +132,7 @@ async def test_tool_pre_invoke_scenarios(
             True,
             False,
             None,
+            None,
         ),
         (
             200,
@@ -138,8 +143,9 @@ async def test_tool_pre_invoke_scenarios(
             False,
             True,
             "NEMO_RAILS_BLOCKED",
+            -32603,  # Internal error for invalid tool response
         ),
-        (500, None, False, True, "NEMO_SERVER_ERROR"),
+        (500, None, False, True, "NEMO_SERVER_ERROR", None),
     ],
 )
 async def test_tool_post_invoke_http_scenarios(
@@ -150,8 +156,9 @@ async def test_tool_post_invoke_http_scenarios(
     expected_continue,
     has_violation,
     expected_code,
+    expected_mcp_code,
 ):
-    """Test tool_post_invoke with various HTTP response scenarios including error codes."""
+    """Test tool_post_invoke with various HTTP response scenarios including error codes and MCP error codes."""
     payload = ToolPostInvokePayload(
         name="test_tool",
         result={"content": [{"type": "text", "text": "Test content"}]},
@@ -167,6 +174,7 @@ async def test_tool_post_invoke_http_scenarios(
     assert (result.violation is not None) == has_violation
     if has_violation:
         assert result.violation.code == expected_code
+        assert result.violation.mcp_error_code == expected_mcp_code
 
 
 @pytest.mark.asyncio
@@ -328,3 +336,9 @@ async def test_violation_includes_rail_names(
     assert "Rails:" in result.violation.description
     assert "detect hap" in result.violation.description
     assert "detect sensitive data" in result.violation.description
+
+    # Verify MCP error code is set appropriately
+    if hook_name == "tool_pre_invoke":
+        assert result.violation.mcp_error_code == -32602
+    else:
+        assert result.violation.mcp_error_code == -32603
