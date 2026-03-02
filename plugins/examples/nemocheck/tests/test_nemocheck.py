@@ -48,6 +48,58 @@ def mock_http_response(status_code, response_data=None):
 
 
 @pytest.mark.asyncio
+async def test_model_configuration(context):
+    """Test that nemo_model config is properly used in requests."""
+    # Test with custom config
+    custom_config = PluginConfig(
+        name="test",
+        kind="nemocheck.NemoCheck",
+        hooks=["tool_pre_invoke", "tool_post_invoke"],
+        config={
+            "nemo_guardrails_url": "http://custom-server:9000",
+            "nemo_model": "custom-model/test-model",
+        },
+    )
+    custom_plugin = NemoCheck(custom_config)
+
+    # Verify config is set correctly
+    assert custom_plugin.model_name == "custom-model/test-model"
+    assert "http://custom-server:9000" in custom_plugin.check_endpoint
+
+    # Verify model is used in tool_pre_invoke
+    pre_payload = ToolPreInvokePayload(
+        name="test_tool",
+        args={"tool_args": '{"param": "value"}'},
+    )
+    with patch(
+        "plugin.requests.post",
+        return_value=mock_http_response(
+            200, {"status": "success", "rails_status": {}}
+        ),
+    ) as mock_post:
+        await custom_plugin.tool_pre_invoke(pre_payload, context)
+        assert (
+            mock_post.call_args[1]["json"]["model"] == "custom-model/test-model"
+        )
+
+    # Verify model is used in tool_post_invoke
+    post_payload = ToolPostInvokePayload(
+        name="test_tool",
+        result={"content": [{"type": "text", "text": "Test content"}]},
+    )
+    with patch(
+        "plugin.requests.post",
+        return_value=mock_http_response(
+            200, {"status": "success", "rails_status": {}}
+        ),
+    ) as mock_post:
+        await custom_plugin.tool_post_invoke(post_payload, context)
+        assert (
+            mock_post.call_args[1]["json"]["model"] == "custom-model/test-model"
+        )
+
+
+@pytest.mark.asyncio
 async def test_prompt_pre_fetch(plugin, context):
     """Test plugin prompt prefetch hook."""
     payload = PromptPrehookPayload(

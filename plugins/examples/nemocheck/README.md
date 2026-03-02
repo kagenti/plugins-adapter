@@ -30,6 +30,7 @@ make deploy
         mode: "enforce"  # enforce | permissive | disabled
         config:
           nemo_guardrails_url: "http://nemo-guardrails-service:8000"
+          nemo_model: "meta-llama/llama-3-3-70b-instruct"  # NeMo model that is being guardrailed, for logging
     # Plugin directories to scan
     plugin_dirs:
       - "plugins/examples/nemocheck"    # Nemo Check Server plugins
