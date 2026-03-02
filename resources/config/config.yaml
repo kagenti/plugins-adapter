@@ -1,41 +1,5 @@
 # plugins/config.yaml - Main plugin configuration file
 plugins:
-  # Self-contained Search Replace Plugin - depends on plugin availability
-  - name: "ReplaceBadWordsPlugin"
-    # From https://github.com/contextforge-org/contextforge-plugins-python
-    kind: "contextforge-plugins-python.regex_filter.search_replace.SearchReplacePlugin"
-    description: "A plugin for finding and replacing words."
-    version: "0.1.0"
-    author: "Teryl Taylor"
-    hooks: ["prompt_pre_fetch", "prompt_post_fetch", "tool_pre_invoke", "tool_post_invoke"]
-    tags: ["plugin", "transformer", "regex", "search-and-replace", "pre-post"]
-    mode: "enforce"  # enforce | permissive | disabled
-    priority: 150
-    conditions:
-      # Apply to specific tools/servers
-      - prompts: ["test_prompt"]
-        server_ids: []  # Apply to all servers
-        tenant_ids: []  # Apply to all tenants
-    config:
-      words:
-        - search: crap
-          replace: crud
-        - search: crud
-          replace: yikes
-
-  # Nemo example
-  - name: "NemoWrapperPlugin"
-    kind: "plugins.examples.nemo.nemo_wrapper_plugin.NemoWrapperPlugin"
-    description: "A simple Nemo PII detector"
-    version: "0.1.0"
-    author: "Evaline Ju"
-    hooks: ["tool_pre_invoke", "tool_post_invoke"]
-    tags: ["plugin", "pre-post"]
-    mode: "enforce"  # enforce | permissive | disabled
-    priority: 150
-    config:
-      foo: bar
-
   # Nemo Check Example
   - name: "NemoCheck"
     kind: "plugins.examples.nemocheck.plugin.NemoCheck"
@@ -51,8 +15,7 @@ plugin_dirs:
   - "plugins/native"                # Built-in plugins
   - "plugins/custom"                # Custom organization plugins
   - "/etc/mcpgateway/plugins"       # System-wide plugins
-  - "plugins/examples/nemo"         # Example Nemo guardrails plugins
-  - "plugins/examples/nemocheck"    # Nemo Check Server plugins
+  - "plugins/examples/nemocheck"    # NeMo Check Server plugins
 
 # Global plugin settings
 plugin_settings:
