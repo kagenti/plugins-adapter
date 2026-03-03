@@ -32,9 +32,9 @@ logger = logging.getLogger(__name__)
 log_level = os.getenv("LOGLEVEL", "INFO").upper()
 logger.setLevel(log_level)
 
-MODEL_NAME = os.getenv(
-    "NEMO_MODEL", "meta-llama/llama-3-3-70b-instruct"
-)  # Currently only for logging.
+DEFAULT_MODEL_NAME = os.getenv(
+    "NEMO_MODEL", "unknown-model"
+)  # Currently only for logging
 DEFAULT_GUARDRAILS_SERVER_URL = os.getenv(
     "GUARDRAILS_SERVER_URL", "http://nemo-guardrails-service:8000"
 )
@@ -54,16 +54,20 @@ class NemoCheck(Plugin):
             config: The plugin configuration
         """
         super().__init__(config)
-        # Allow config to override the server URL
+        # Allow config to override the server URL and model name
         # Handle case where config.config might be None or empty
         if config.config and isinstance(config.config, dict):
             server_url = config.config.get(
                 "nemo_guardrails_url", DEFAULT_GUARDRAILS_SERVER_URL
             )
+            self.model_name = config.config.get(
+                "nemo_model", DEFAULT_MODEL_NAME
+            )
         else:
             server_url = DEFAULT_GUARDRAILS_SERVER_URL
+            self.model_name = DEFAULT_MODEL_NAME
             logger.warning(
-                "Plugin config is empty or invalid, using default server URL"
+                "Plugin config is empty or invalid, using default server URL and model"
             )
 
         # Construct full endpoint URL
@@ -71,6 +75,7 @@ class NemoCheck(Plugin):
         logger.info(
             f"NeMo Guardrails endpoint for check plugin: {self.check_endpoint}"
         )
+        logger.info(f"NeMo model name: {self.model_name}")
 
     async def prompt_pre_fetch(
         self, payload: PromptPrehookPayload, context: PluginContext
@@ -118,7 +123,7 @@ class NemoCheck(Plugin):
 
         tool_name = payload.name
         check_nemo_payload = {
-            "model": MODEL_NAME,
+            "model": self.model_name,
             "messages": [
                 {
                     "role": "assistant",
@@ -235,7 +240,7 @@ class NemoCheck(Plugin):
 
         # Build NeMo check payload for tool response
         check_nemo_payload = {
-            "model": MODEL_NAME,  # ideally optional
+            "model": self.model_name,
             "messages": [
                 {"role": "tool", "content": text_content, "name": tool_name}
             ],

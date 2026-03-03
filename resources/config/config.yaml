@@ -9,6 +9,8 @@ plugins:
     author: "Julian Stephen"
     config:
       nemo_guardrails_url: "http://nemo-guardrails-service:8000"
+      # Replace with model name guardrailed by NeMo, for logging
+      nemo_model: "model-org/guardrailed-model"
 
 # Plugin directories to scan
 plugin_dirs:
