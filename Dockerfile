@@ -1,6 +1,10 @@
 #FROM python:3.12.12
 FROM public.ecr.aws/docker/library/python:3.12.12-slim
 
+# Build argument to specify which plugin examples to include dependencies for
+# Comma-separated list of plugin names (e.g., "nemo" or "nemo,other_plugin")
+ARG PLUGIN_DEPS=""
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git gcc g++ \
     && apt-get purge -y --auto-remove \
@@ -18,8 +22,29 @@ RUN mkdir -p src/resources
 
 COPY src/ ./src/
 COPY resources ./src/resources/
-# This can be restricted to particular "built-in" example plugins
+
+# Copy plugins directory
 COPY plugins ./plugins/
+
+# Install plugin-specific dependencies based on PLUGIN_DEPS argument
+# Usage: docker build --build-arg PLUGIN_DEPS="nemo" -t plugins-adapter .
+# Or for multiple: docker build --build-arg PLUGIN_DEPS="nemo,other_plugin" -t plugins-adapter .
+RUN if [ -n "$PLUGIN_DEPS" ]; then \
+        echo "Installing dependencies for plugins: $PLUGIN_DEPS"; \
+        IFS=',' read -ra PLUGINS <<< "$PLUGIN_DEPS"; \
+        for plugin in "${PLUGINS[@]}"; do \
+            plugin=$(echo "$plugin" | xargs); \
+            req_file="plugins/examples/$plugin/requirements.txt"; \
+            if [ -f "$req_file" ]; then \
+                echo "Installing dependencies from $req_file"; \
+                pip install --no-cache-dir -r "$req_file"; \
+            else \
+                echo "Warning: No requirements.txt found for plugin '$plugin' at $req_file"; \
+            fi; \
+        done; \
+    else \
+        echo "No plugin dependencies specified (use --build-arg PLUGIN_DEPS=\"plugin1,plugin2\" to include)"; \
+    fi
 
 # Expose the gRPC port
 EXPOSE 50052
