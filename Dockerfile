@@ -23,10 +23,12 @@ RUN mkdir -p src/resources
 COPY src/ ./src/
 COPY resources ./src/resources/
 
-# Copy plugins directory
+# This can be restricted to particular "built-in" example plugins
 COPY plugins ./plugins/
 
 # Install plugin-specific dependencies based on PLUGIN_DEPS argument
+# This depends on plugins having requirements.txt in the directory
+# and could be subject to error depending on how a plugin is structured.
 # Usage: docker build --build-arg PLUGIN_DEPS="nemo" -t plugins-adapter .
 # Or for multiple: docker build --build-arg PLUGIN_DEPS="nemo,other_plugin" -t plugins-adapter .
 RUN if [ -n "$PLUGIN_DEPS" ]; then \
