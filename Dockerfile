@@ -31,15 +31,16 @@ COPY plugins ./plugins/
 # Or for multiple: docker build --build-arg PLUGIN_DEPS="nemo,other_plugin" -t plugins-adapter .
 RUN if [ -n "$PLUGIN_DEPS" ]; then \
         echo "Installing dependencies for plugins: $PLUGIN_DEPS"; \
-        IFS=',' read -ra PLUGINS <<< "$PLUGIN_DEPS"; \
-        for plugin in "${PLUGINS[@]}"; do \
+        echo "$PLUGIN_DEPS" | tr ',' '\n' | while read plugin; do \
             plugin=$(echo "$plugin" | xargs); \
-            req_file="plugins/examples/$plugin/requirements.txt"; \
-            if [ -f "$req_file" ]; then \
-                echo "Installing dependencies from $req_file"; \
-                pip install --no-cache-dir -r "$req_file"; \
-            else \
-                echo "Warning: No requirements.txt found for plugin '$plugin' at $req_file"; \
+            if [ -n "$plugin" ]; then \
+                req_file="plugins/examples/$plugin/requirements.txt"; \
+                if [ -f "$req_file" ]; then \
+                    echo "Installing dependencies from $req_file"; \
+                    pip install --no-cache-dir -r "$req_file"; \
+                else \
+                    echo "Warning: No requirements.txt found for plugin '$plugin' at $req_file"; \
+                fi; \
             fi; \
         done; \
     else \
