@@ -1,6 +1,7 @@
 # Standard
 import asyncio
 import logging
+from src.envoy.service.ext_proc.v3.external_processor_pb2 import BodyResponse
 from typing import AsyncIterator
 import json
 import os
@@ -135,6 +136,7 @@ async def getToolPreInvokeResponse(body):
     else:
         logger.debug("continue_processing true")
         result_payload = result.modified_payload
+        body_mutation: BodyResponse = ep.BodyResponse(response=ep.CommonResponse())
         if result_payload is not None and result_payload.args is not None:
             body["params"]["arguments"] = result_payload.args["tool_args"]
             body_mutation = ep.BodyResponse(
@@ -146,7 +148,6 @@ async def getToolPreInvokeResponse(body):
             )
         else:
             logger.debug("No change in tool args")
-            body_mutation = ep.BodyResponse(response=ep.CommonResponse())
         body_resp = ep.ProcessingResponse(request_body=body_mutation)
     logger.info(f"****Tool Pre Invoke Return body: {body_resp}****")
     return body_resp
@@ -486,7 +487,13 @@ async def serve(host: str = "0.0.0.0", port: int = 50052):
     await manager.initialize()
     logger.info(f"Manager config: {manager.config}")
     logger.debug(f"Loaded {manager.plugin_count} plugins")
-
+    global_context = GlobalContext(request_id="1", server_id="2")
+    payload = ToolPreInvokePayload(
+        name="init", args={}
+    )    
+    result, _ = await manager.invoke_hook(
+        ToolHookType.TOOL_PRE_INVOKE, payload, global_context=global_context
+    )
     server = grpc.aio.server()
     # server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     ep_grpc.add_ExternalProcessorServicer_to_server(ExtProcServicer(), server)
