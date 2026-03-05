@@ -73,14 +73,10 @@ async def test_model_configuration(context):
     )
     with patch(
         "plugin.requests.post",
-        return_value=mock_http_response(
-            200, {"status": "success", "rails_status": {}}
-        ),
+        return_value=mock_http_response(200, {"status": "success", "rails_status": {}}),
     ) as mock_post:
         await custom_plugin.tool_pre_invoke(pre_payload, context)
-        assert (
-            mock_post.call_args[1]["json"]["model"] == "custom-model/test-model"
-        )
+        assert mock_post.call_args[1]["json"]["model"] == "custom-model/test-model"
 
     # Verify model is used in tool_post_invoke
     post_payload = ToolPostInvokePayload(
@@ -89,14 +85,10 @@ async def test_model_configuration(context):
     )
     with patch(
         "plugin.requests.post",
-        return_value=mock_http_response(
-            200, {"status": "success", "rails_status": {}}
-        ),
+        return_value=mock_http_response(200, {"status": "success", "rails_status": {}}),
     ) as mock_post:
         await custom_plugin.tool_post_invoke(post_payload, context)
-        assert (
-            mock_post.call_args[1]["json"]["model"] == "custom-model/test-model"
-        )
+        assert mock_post.call_args[1]["json"]["model"] == "custom-model/test-model"
 
 
 @pytest.mark.asyncio
@@ -117,9 +109,7 @@ async def test_prompt_pre_fetch(plugin, context):
             200,
             {
                 "status": "success",
-                "rails_status": {
-                    "detect sensitive data": {"status": "success"}
-                },
+                "rails_status": {"detect sensitive data": {"status": "success"}},
             },
             True,
             False,
@@ -177,9 +167,7 @@ async def test_tool_pre_invoke_scenarios(
             200,
             {
                 "status": "success",
-                "rails_status": {
-                    "detect sensitive data": {"status": "success"}
-                },
+                "rails_status": {"detect sensitive data": {"status": "success"}},
             },
             True,
             False,
@@ -262,9 +250,7 @@ async def test_tool_post_invoke_concatenates_text(plugin, context):
 
     with patch(
         "plugin.requests.post",
-        return_value=mock_http_response(
-            200, {"status": "success", "rails_status": {}}
-        ),
+        return_value=mock_http_response(200, {"status": "success", "rails_status": {}}),
     ) as mock_post:
         result = await plugin.tool_post_invoke(payload, context)
 
@@ -288,9 +274,7 @@ async def test_tool_post_invoke_filters_non_text(plugin, context):
 
     with patch(
         "plugin.requests.post",
-        return_value=mock_http_response(
-            200, {"status": "success", "rails_status": {}}
-        ),
+        return_value=mock_http_response(200, {"status": "success", "rails_status": {}}),
     ) as mock_post:
         result = await plugin.tool_post_invoke(payload, context)
 
@@ -318,9 +302,7 @@ async def test_tool_post_invoke_filters_non_text(plugin, context):
         ),
     ],
 )
-async def test_connection_error_handling(
-    plugin, context, hook_name, payload_factory
-):
+async def test_connection_error_handling(plugin, context, hook_name, payload_factory):
     """Test both hooks fail closed on connection errors with NEMO_CONNECTION_ERROR code."""
     payload = payload_factory()
     hook = getattr(plugin, hook_name)

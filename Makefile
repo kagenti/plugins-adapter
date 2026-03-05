@@ -72,3 +72,7 @@ deploy_quay:
 	kubectl apply -f ext-proc.yaml
 	kubectl apply -f filter.yaml
 
+dev-run-nemocheck:
+	export PYTHONPATH="${PYTHONPATH}:.";  \
+	pip install -e  plugins/examples/nemocheck; \
+	python src/server.py
