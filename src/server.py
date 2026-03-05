@@ -13,15 +13,17 @@ from envoy.config.core.v3 import base_pb2 as core
 from envoy.type.v3 import http_status_pb2 as http_status_pb2
 
 # First-Party
-from mcpgateway.plugins.framework import (
+from cpex.framework import (
+    PluginManager,
     ToolHookType,
+    PromptHookType,
     PromptPrehookPayload,
     ToolPostInvokePayload,
     ToolPreInvokePayload,
+    PluginResult
 )
 
-from mcpgateway.plugins.framework import PluginManager
-from mcpgateway.plugins.framework.models import GlobalContext
+from cpex.framework.models import GlobalContext
 
 # ============================================================================
 # LOGGING CONFIGURATION
@@ -76,7 +78,7 @@ def create_mcp_immediate_error_response(body, error_message, violation=None):
     return ep.ProcessingResponse(
         immediate_response=ep.ImmediateResponse(
             # Use 200 status with error in body for MCP protocol compatibility
-            status=http_status_pb2.HttpStatus(code=200),
+            status=http_status_pb2.HttpStatus(code=http_status_pb2.OK),
             headers=ep.HeaderMutation(
                 set_headers=[
                     core.HeaderValueOption(
@@ -97,6 +99,17 @@ def create_mcp_immediate_error_response(body, error_message, violation=None):
         )
     )
 
+# ============================================================================
+# Helper function that constructs an Envoy external processor BodyResponse from body obj.    
+# ============================================================================
+def get_modified_response(body) -> ep.BodyResponse:
+    return  ep.BodyResponse(
+                response=ep.CommonResponse(
+                    body_mutation=ep.BodyMutation(
+                        body=json.dumps(body).encode("utf-8")
+                    )
+                )
+            )  
 
 # ============================================================================
 # MCP HOOK HANDLERS
@@ -135,18 +148,12 @@ async def getToolPreInvokeResponse(body):
     else:
         logger.debug("continue_processing true")
         result_payload = result.modified_payload
+        body_mutation = ep.BodyResponse(response=ep.CommonResponse())
         if result_payload is not None and result_payload.args is not None:
             body["params"]["arguments"] = result_payload.args["tool_args"]
-            body_mutation = ep.BodyResponse(
-                response=ep.CommonResponse(
-                    body_mutation=ep.BodyMutation(
-                        body=json.dumps(body).encode("utf-8")
-                    )
-                )
-            )
+            body_mutation = get_modified_response(body)
         else:
             logger.debug("No change in tool args")
-            body_mutation = ep.BodyResponse(response=ep.CommonResponse())
         body_resp = ep.ProcessingResponse(request_body=body_mutation)
     logger.info(f"****Tool Pre Invoke Return body: {body_resp}****")
     return body_resp
@@ -212,12 +219,12 @@ async def getPromptPreFetchResponse(body):
     modification, or blocking of the prompt request.
     """
     prompt = PromptPrehookPayload(
-        name=body["params"]["name"], args=body["params"]["arguments"]
+        prompt_id=body["params"]["name"], args=body["params"]["arguments"]
     )
     # TODO: hard-coded ids
     global_context = GlobalContext(request_id="1", server_id="2")
     result, _ = await manager.invoke_hook(
-        ToolHookType.PROMPT_PRE_FETCH, prompt, global_context=global_context
+        PromptHookType.PROMPT_PRE_FETCH, prompt, global_context=global_context
     )
     logger.info(result)
     if not result.continue_processing:
@@ -227,16 +234,17 @@ async def getPromptPreFetchResponse(body):
             violation=result.violation,
         )
     else:
-        body["params"]["arguments"] = result.modified_payload.args
-        body_resp = ep.ProcessingResponse(
-            request_body=ep.BodyResponse(
-                response=ep.CommonResponse(
-                    body_mutation=ep.BodyMutation(
-                        body=json.dumps(body).encode("utf-8")
-                    )
-                )
-            )
-        )
+
+        result_payload = result.modified_payload
+        body_mutation = ep.BodyResponse(response=ep.CommonResponse())
+        if result_payload is not None and result_payload.args is not None:
+            body["params"]["arguments"] = result_payload.args["tool_args"]
+            body_mutation = get_modified_response(body)
+        else:
+            logger.debug("No change in prompt")
+        
+        body_resp = ep.ProcessingResponse(request_body=body_mutation)
+
     logger.info(f"****Prompt Pre-fetch Return body: {body_resp}")
     return body_resp
 
