@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 # First-Party
-from mcpgateway.plugins.framework import (
+from cpex.framework import (
     PluginConfig,
     PluginContext,
     GlobalContext,
