@@ -28,7 +28,7 @@ endif
 
 # Build the combined broker and router 
 build:
-	$(CONTAINER_RUNTIME) build -t $(IMAGE_LOCAL) .
+	$(CONTAINER_RUNTIME) build -t $(IMAGE_LOCAL) . --build-arg PLUGIN_DEPS=${PLUGIN_DEPS}
 
 load:
 	kind load docker-image $(IMAGE_LOCAL) --name mcp-gateway

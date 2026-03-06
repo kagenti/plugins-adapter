@@ -1248,6 +1248,7 @@ source = { editable = "." }
 dependencies = [
     { name = "mcp" },
     { name = "mcp-contextforge-gateway" },
+    { name = "requests" },
 ]
 
 [package.optional-dependencies]
@@ -1291,6 +1292,7 @@ requires-dist = [
     { name = "pytest-rerunfailures", marker = "extra == 'dev'", specifier = ">=15.1" },
     { name = "pytest-trio", marker = "extra == 'dev'", specifier = ">=0.8.0" },
     { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.8.0" },
+    { name = "requests", specifier = ">=2.32.5" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.12.9" },
     { name = "unimport", marker = "extra == 'dev'", specifier = ">=1.2.1" },
     { name = "uv", marker = "extra == 'dev'", specifier = ">=0.8.11" },

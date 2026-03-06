@@ -46,6 +46,7 @@ authors = [
 dependencies = [
     "mcp>=1.16.0",
     "mcp-contextforge-gateway",
+    "requests>=2.32.5",
 ]
 
 # URLs
