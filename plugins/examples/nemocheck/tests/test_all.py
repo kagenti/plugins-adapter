@@ -9,8 +9,9 @@ import pytest
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, Field
+
 # First-Party
-#from mcpgateway.common.models import Message, PromptResult, Role, TextContent
+# from mcpgateway.common.models import Message, PromptResult, Role, TextContent
 from cpex.framework import (
     GlobalContext,
     PluginManager,
@@ -20,6 +21,7 @@ from cpex.framework import (
     ToolHookType,
     ToolPostInvokePayload,
 )
+
 
 ##----- Temporary classes from contextforge-plugins-framework/tests/unit/cpex/fixtures/common/models.py ##
 ## Available at https://github.com/contextforge-org/contextforge-plugins-framework/blob/5769b1bbced23cdc7448bf001aecdbe6a44f22d5/tests/unit/cpex/fixtures/common/models.py
@@ -99,6 +101,7 @@ class PromptResult(BaseModel):
 # Per spec: ContentBlock can include ResourceLink and EmbeddedResource
 ContentBlock = Union[TextContent]
 
+
 @pytest.fixture(scope="module", autouse=True)
 def plugin_manager():
     """Initialize plugin manager."""
@@ -128,7 +131,8 @@ async def test_prompt_post_hook(plugin_manager: PluginManager):
     """Test prompt post hook across all registered plugins."""
     # Customize payload for testing
     message = Message(
-        content=TextContent(type="text", text="prompt", _meta={}), role=Role.USER
+        content=TextContent(type="text", text="prompt", _meta={}),
+        role=Role.USER,
     )
     prompt_result = PromptResult(messages=[message])
     payload = PromptPosthookPayload(
