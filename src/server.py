@@ -128,7 +128,9 @@ async def getToolPreInvokeResponse(body):
         "tool_args": body["params"]["arguments"],
         "client_session_id": "replaceme",
     }
-    payload = ToolPreInvokePayload(name=body["params"]["name"], args=payload_args)
+    payload = ToolPreInvokePayload(
+        name=body["params"]["name"], args=payload_args
+    )
     # TODO: hard-coded ids
     global_context = GlobalContext(request_id="1", server_id="2")
     logger.debug(f"**** Invoking Tool Pre Invoke with payload: {payload} ****")
@@ -196,7 +198,9 @@ async def getToolPostInvokeResponse(body):
         body["result"] = result_payload.result
         body_mutation = ep.BodyResponse(
             response=ep.CommonResponse(
-                body_mutation=ep.BodyMutation(body=json.dumps(body).encode("utf-8"))
+                body_mutation=ep.BodyMutation(
+                    body=json.dumps(body).encode("utf-8")
+                )
             )
         )
     else:
@@ -417,7 +421,9 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         body = json.loads(text)
                         if "method" in body and body["method"] == "tools/call":
                             body_resp = await getToolPreInvokeResponse(body)
-                        elif "method" in body and body["method"] == "prompts/get":
+                        elif (
+                            "method" in body and body["method"] == "prompts/get"
+                        ):
                             body_resp = await getPromptPreFetchResponse(body)
                         else:
                             body_resp = ep.ProcessingResponse(
@@ -448,7 +454,9 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                     )
 
                     # Process the buffered content
-                    body_resp = await process_response_body_buffer(resp_body_buf)
+                    body_resp = await process_response_body_buffer(
+                        resp_body_buf
+                    )
                     yield body_resp
                     resp_body_buf.clear()
                 else:
@@ -457,7 +465,9 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         "Buffering intermediate chunk, waiting for end_of_stream"
                     )
                     yield ep.ProcessingResponse(
-                        response_body=ep.BodyResponse(response=ep.CommonResponse())
+                        response_body=ep.BodyResponse(
+                            response=ep.CommonResponse()
+                        )
                     )
 
             else:

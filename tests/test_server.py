@@ -34,7 +34,9 @@ def mock_envoy_modules():
     sys.modules["envoy.service.ext_proc"] = MagicMock()
     sys.modules["envoy.service.ext_proc.v3"] = MagicMock()
     sys.modules["envoy.service.ext_proc.v3.external_processor_pb2"] = mock_ep
-    sys.modules["envoy.service.ext_proc.v3.external_processor_pb2_grpc"] = mock_ep_grpc
+    sys.modules["envoy.service.ext_proc.v3.external_processor_pb2_grpc"] = (
+        mock_ep_grpc
+    )
     sys.modules["envoy.config"] = MagicMock()
     sys.modules["envoy.config.core"] = MagicMock()
     sys.modules["envoy.config.core.v3"] = MagicMock()
@@ -72,7 +74,9 @@ def sample_tool_result_body():
     return {
         "jsonrpc": "2.0",
         "id": "test-123",
-        "result": {"content": [{"type": "text", "text": "Tool execution result"}]},
+        "result": {
+            "content": [{"type": "text", "text": "Tool execution result"}]
+        },
     }
 
 
@@ -181,7 +185,9 @@ async def test_getToolPostInvokeResponse_blocked(
     json.dumps = spy_dumps
     try:
         # Call the function
-        response = await src.server.getToolPostInvokeResponse(sample_tool_result_body)
+        response = await src.server.getToolPostInvokeResponse(
+            sample_tool_result_body
+        )
     finally:
         json.dumps = original_dumps
 
@@ -202,7 +208,10 @@ async def test_getToolPostInvokeResponse_blocked(
     assert error_body["error"]["code"] == -32000
     # Verify violation message is included
     assert "Sensitive content detected" in error_body["error"]["message"]
-    assert "Tool response contains forbidden content" in error_body["error"]["message"]
+    assert (
+        "Tool response contains forbidden content"
+        in error_body["error"]["message"]
+    )
 
 
 @pytest.mark.asyncio
@@ -214,8 +223,12 @@ async def test_getToolPostInvokeResponse_modified_payload(
     import src.server
 
     # Setup mock to return modified payload
-    modified_result = {"content": [{"type": "text", "text": "Modified tool result"}]}
-    modified_payload = ToolPostInvokePayload(name="test_tool", result=modified_result)
+    modified_result = {
+        "content": [{"type": "text", "text": "Modified tool result"}]
+    }
+    modified_payload = ToolPostInvokePayload(
+        name="test_tool", result=modified_result
+    )
     mock_result = ToolPostInvokeResult(
         continue_processing=True,
         modified_payload=modified_payload,
@@ -239,7 +252,9 @@ async def test_getToolPostInvokeResponse_modified_payload(
     json.dumps = spy_dumps
     try:
         # Call the function
-        response = await src.server.getToolPostInvokeResponse(sample_tool_result_body)
+        response = await src.server.getToolPostInvokeResponse(
+            sample_tool_result_body
+        )
     finally:
         json.dumps = original_dumps
 
@@ -254,7 +269,9 @@ async def test_getToolPostInvokeResponse_modified_payload(
         "json.dumps should have been called with the modified body"
     )
     assert captured_body["result"] == modified_result
-    assert captured_body["result"]["content"][0]["text"] == "Modified tool result"
+    assert (
+        captured_body["result"]["content"][0]["text"] == "Modified tool result"
+    )
     # Verify original metadata (jsonrpc, id) is preserved
     assert captured_body["jsonrpc"] == sample_tool_result_body["jsonrpc"]
     assert captured_body["id"] == sample_tool_result_body["id"]
@@ -397,7 +414,9 @@ async def test_process_response_body_buffer_multiple_chunks_scenario(
 
 
 @pytest.mark.asyncio
-async def test_process_response_body_buffer_empty(mock_envoy_modules, mock_manager):
+async def test_process_response_body_buffer_empty(
+    mock_envoy_modules, mock_manager
+):
     """Test process_response_body_buffer with empty buffer."""
     setup_response_mocks(mock_envoy_modules)
     import src.server

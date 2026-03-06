@@ -60,7 +60,9 @@ class NemoCheck(Plugin):
             server_url = config.config.get(
                 "nemo_guardrails_url", DEFAULT_GUARDRAILS_SERVER_URL
             )
-            self.model_name = config.config.get("nemo_model", DEFAULT_MODEL_NAME)
+            self.model_name = config.config.get(
+                "nemo_model", DEFAULT_MODEL_NAME
+            )
         else:
             server_url = DEFAULT_GUARDRAILS_SERVER_URL
             self.model_name = DEFAULT_MODEL_NAME
@@ -70,7 +72,9 @@ class NemoCheck(Plugin):
 
         # Construct full endpoint URL
         self.check_endpoint = server_url.rstrip("/") + CHECK_PATH
-        logger.info(f"NeMo Guardrails endpoint for check plugin: {self.check_endpoint}")
+        logger.info(
+            f"NeMo Guardrails endpoint for check plugin: {self.check_endpoint}"
+        )
         logger.info(f"NeMo model name: {self.model_name}")
 
     async def prompt_pre_fetch(
@@ -130,7 +134,9 @@ class NemoCheck(Plugin):
                             "type": "function",
                             "function": {
                                 "name": tool_name,
-                                "arguments": payload.args.get("tool_args", None),
+                                "arguments": payload.args.get(
+                                    "tool_args", None
+                                ),
                             },
                         }
                     ],
@@ -195,7 +201,9 @@ class NemoCheck(Plugin):
                 code="NEMO_CONNECTION_ERROR",
                 details={"error": str(e)},
             )
-            return ToolPreInvokeResult(continue_processing=False, violation=violation)
+            return ToolPreInvokeResult(
+                continue_processing=False, violation=violation
+            )
 
     async def tool_post_invoke(
         self, payload: ToolPostInvokePayload, context: PluginContext
@@ -219,7 +227,9 @@ class NemoCheck(Plugin):
         tool_name = payload.name
 
         if not result_content:
-            logger.warning("[NemoCheck] No content in tool result, skipping check")
+            logger.warning(
+                "[NemoCheck] No content in tool result, skipping check"
+            )
             return ToolPostInvokeResult(continue_processing=True)
 
         # Extract text content from the content array
@@ -232,10 +242,14 @@ class NemoCheck(Plugin):
         # Build NeMo check payload for tool response
         check_nemo_payload = {
             "model": self.model_name,
-            "messages": [{"role": "tool", "content": text_content, "name": tool_name}],
+            "messages": [
+                {"role": "tool", "content": text_content, "name": tool_name}
+            ],
         }
 
-        logger.debug(f"[NemoCheck] Payload for guardrail check: {check_nemo_payload}")
+        logger.debug(
+            f"[NemoCheck] Payload for guardrail check: {check_nemo_payload}"
+        )
 
         violation = None
         try:
@@ -297,4 +311,6 @@ class NemoCheck(Plugin):
                 code="NEMO_CONNECTION_ERROR",
                 details={"error": str(e)},
             )
-            return ToolPostInvokeResult(continue_processing=False, violation=violation)
+            return ToolPostInvokeResult(
+                continue_processing=False, violation=violation
+            )
