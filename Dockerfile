@@ -36,7 +36,7 @@ RUN if [ -n "$PLUGIN_DEPS" ]; then \
         echo "$PLUGIN_DEPS" | tr ',' '\n' | while read plugin; do \
             plugin=$(echo "$plugin" | xargs); \
             if [ -n "$plugin" ]; then \
-		plugin_dir="plugins/examples/$plugin"; \
+                plugin_dir="plugins/examples/$plugin"; \
                 req_file="$plugin_dir/pyproject.toml"; \
                 if [ -f "$req_file" ]; then \
                     echo "Installing dependencies from $plugin_dir"; \
