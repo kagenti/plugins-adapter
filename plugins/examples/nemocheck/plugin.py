@@ -8,7 +8,7 @@ This module provides the core Nemo Check guardrails plugin implementation.
 """
 
 # First-Party
-from mcpgateway.plugins.framework import (
+from cpex.framework import (
     Plugin,
     PluginConfig,
     PluginContext,
@@ -122,6 +122,7 @@ class NemoCheck(Plugin):
         )
 
         tool_name = payload.name
+        assert payload.args is not None
         check_nemo_payload = {
             "model": self.model_name,
             "messages": [

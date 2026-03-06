@@ -36,12 +36,13 @@ RUN if [ -n "$PLUGIN_DEPS" ]; then \
         echo "$PLUGIN_DEPS" | tr ',' '\n' | while read plugin; do \
             plugin=$(echo "$plugin" | xargs); \
             if [ -n "$plugin" ]; then \
-                req_file="plugins/examples/$plugin/requirements.txt"; \
+                plugin_dir="plugins/examples/$plugin"; \
+                req_file="$plugin_dir/pyproject.toml"; \
                 if [ -f "$req_file" ]; then \
-                    echo "Installing dependencies from $req_file"; \
-                    pip install --no-cache-dir -r "$req_file"; \
+                    echo "Installing dependencies from $plugin_dir"; \
+                    pip install --no-cache-dir $plugin_dir; \
                 else \
-                    echo "Warning: No requirements.txt found for plugin '$plugin' at $req_file"; \
+                    echo "Warning: No pyproject.toml found for plugin '$plugin' at $req_file"; \
                 fi; \
             fi; \
         done; \

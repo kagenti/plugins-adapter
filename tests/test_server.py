@@ -12,7 +12,7 @@ import json
 import pytest
 
 # First-Party
-from mcpgateway.plugins.framework import (
+from cpex.framework import (
     ToolPostInvokeResult,
     ToolPostInvokePayload,
     PluginViolation,

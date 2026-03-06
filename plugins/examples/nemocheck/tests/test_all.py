@@ -6,10 +6,13 @@ import asyncio
 
 # Third-Party
 import pytest
+from enum import Enum
+from typing import Any, Dict, List, Literal, Optional, Union
+from pydantic import BaseModel, Field
 
 # First-Party
-from mcpgateway.common.models import Message, PromptResult, Role, TextContent
-from mcpgateway.plugins.framework import (
+# from mcpgateway.common.models import Message, PromptResult, Role, TextContent
+from cpex.framework import (
     GlobalContext,
     PluginManager,
     PromptHookType,
@@ -18,6 +21,85 @@ from mcpgateway.plugins.framework import (
     ToolHookType,
     ToolPostInvokePayload,
 )
+
+
+##----- Temporary classes from contextforge-plugins-framework/tests/unit/cpex/fixtures/common/models.py ##
+## Available at https://github.com/contextforge-org/contextforge-plugins-framework/blob/5769b1bbced23cdc7448bf001aecdbe6a44f22d5/tests/unit/cpex/fixtures/common/models.py
+class Role(str, Enum):
+    """Message role in conversations."""
+
+    ASSISTANT = "assistant"
+    USER = "user"
+
+
+# Base content types
+class TextContent(BaseModel):
+    """Text content for messages (MCP spec-compliant)."""
+
+    type: Literal["text"]
+    text: str
+    annotations: Optional[Any] = None
+    meta: Optional[Dict[str, Any]] = Field(None, alias="_meta")
+
+
+class ResourceContents(BaseModel):
+    """Base class for resource contents (MCP spec-compliant)."""
+
+    uri: str
+    mime_type: Optional[str] = Field(None, alias="mimeType")
+    meta: Optional[Dict[str, Any]] = Field(None, alias="_meta")
+
+
+# Legacy ResourceContent for backwards compatibility
+class ResourceContent(BaseModel):
+    """Resource content that can be embedded (LEGACY - use TextResourceContents or BlobResourceContents)."""
+
+    type: Literal["resource"]
+    id: str
+    uri: str
+    mime_type: Optional[str] = None
+    text: Optional[str] = None
+    blob: Optional[bytes] = None
+
+
+ContentType = Union[TextContent, ResourceContent]
+
+
+# Message types
+class Message(BaseModel):
+    """A message in a conversation.
+
+    Attributes:
+        role (Role): The role of the message sender.
+        content (ContentType): The content of the message.
+    """
+
+    role: Role
+    content: ContentType
+
+
+class PromptMessage(BaseModel):
+    """Message in a prompt (MCP spec-compliant)."""
+
+    role: Role
+    content: "ContentBlock"  # Uses ContentBlock union (includes ResourceLink and EmbeddedResource)
+
+
+class PromptResult(BaseModel):
+    """Result of rendering a prompt template.
+
+    Attributes:
+        messages (List[Message]): The list of messages produced by rendering the prompt.
+        description (Optional[str]): An optional description of the rendered result.
+    """
+
+    messages: List[Message]
+    description: Optional[str] = None
+
+
+# MCP spec-compliant ContentBlock union for prompts and tool results
+# Per spec: ContentBlock can include ResourceLink and EmbeddedResource
+ContentBlock = Union[TextContent]
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -49,7 +131,8 @@ async def test_prompt_post_hook(plugin_manager: PluginManager):
     """Test prompt post hook across all registered plugins."""
     # Customize payload for testing
     message = Message(
-        content=TextContent(type="text", text="prompt"), role=Role.USER
+        content=TextContent(type="text", text="prompt", _meta={}),
+        role=Role.USER,
     )
     prompt_result = PromptResult(messages=[message])
     payload = PromptPosthookPayload(

@@ -44,8 +44,9 @@ authors = [
 ]
 
 dependencies = [
+    "cpex",
     "mcp>=1.16.0",
-    "mcp-contextforge-gateway",
+    "requests>=2.32.5",
 ]
 
 # URLs
@@ -55,9 +56,6 @@ Documentation = "https://ibm.github.io/mcp-context-forge/"
 Repository = "https://github.com/IBM/mcp-context-forge"
 "Bug Tracker" = "https://github.com/IBM/mcp-context-forge/issues"
 Changelog = "https://github.com/IBM/mcp-context-forge/blob/main/CHANGELOG.md"
-
-[tool.uv.sources]
-mcp-contextforge-gateway = { git = "https://github.com/IBM/mcp-context-forge.git", rev = "main" }
 
 # ----------------------------------------------------------------
 # Optional dependency groups (extras)
@@ -96,6 +94,9 @@ exclude = ["tests*"]
 nemocheck = [
   "resources/plugins/config.yaml",
 ]
+
+[tool.uv.sources]
+cpex = { git = "https://github.com/contextforge-org/contextforge-plugins-framework.git" }
 
 [dependency-groups]
 dev = [
