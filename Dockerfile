@@ -42,7 +42,7 @@ RUN if [ -n "$PLUGIN_DEPS" ]; then \
                     echo "Installing dependencies from $plugin_dir"; \
                     pip install --no-cache-dir $plugin_dir; \
                 else \
-                    echo "Warning: No pyproject.tomml found for plugin '$plugin' at $req_file"; \
+                    echo "Warning: No pyproject.toml found for plugin '$plugin' at $req_file"; \
                 fi; \
             fi; \
         done; \
