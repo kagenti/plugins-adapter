@@ -17,12 +17,9 @@ description = "NemoCheck external plugin"
 requires-python = ">=3.11,<3.14"
 
 dependencies = [
+    "cpex",
     "mcp>=1.16.0",
-    "mcp-contextforge-gateway",
 ]
-
-[tool.uv.sources]
-mcp-contextforge-gateway = { git = "https://github.com/IBM/mcp-context-forge.git", rev = "main" }
 
 # --------------------------------------------------------------------
 #  🔧 setuptools-specific configuration
@@ -31,3 +28,6 @@ mcp-contextforge-gateway = { git = "https://github.com/IBM/mcp-context-forge.git
 # No packages - this is just a runtime environment
 # Plugin code comes from the nemocheck package
 packages = []
+
+[tool.uv.sources]
+cpex = { git = "https://github.com/contextforge-org/contextforge-plugins-framework.git" }
