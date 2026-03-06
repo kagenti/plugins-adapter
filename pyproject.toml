@@ -4,24 +4,25 @@ version = "0.1.0"
 description = "Envoy ext-proc for configuring and invoking guardrails in an Envoy-based gateway"
 requires-python = ">=3.11"
 dependencies = [
-    "grpcio>=1.76.0",
-    "grpcio-tools>=1.76.0",
+    "grpcio>=1.78.0",
+    "grpcio-tools>=1.78.0",
     "betterproto2==0.9.1",
-    "mcp-contextforge-gateway==0.9.0",
+    "cpex @ git+https://github.com/contextforge-org/contextforge-plugins-framework.git",
 ]
 
 [dependency-groups]
 proto = [
     "requests==2.32.5",
-    "grpcio>=1.76.0",
-    "grpcio-tools>=1.76.0",
+    "grpcio>=1.78.0",
+    "grpcio-tools>=1.78.0",
     "betterproto2==0.9.1",
     "betterproto2_compiler==0.9.0",
     "structlog==25.5.0",
 ]
 dev = [
     "pytest>=8.0.0",
-    "pytest-asyncio>=0.23.0",
+    "pytest-asyncio==1.3.0",
+    "pre-commit>=4.2.1",
 ]
 
 [tool.ruff]
