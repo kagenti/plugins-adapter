@@ -10,6 +10,9 @@ plugins:
       nemo_guardrails_url: "http://nemo-guardrails-service:8000"
       # Replace with model name guardrailed by NeMo, for logging
       nemo_model: "model-org/guardrailed-model"
+      # NeMo configuration ID to use for guardrails
+      nemo_config_id: "default"
+
 # Plugin directories to scan
 plugin_dirs:
   - "plugins/examples/nemocheck"    # Nemo Check Server plugins

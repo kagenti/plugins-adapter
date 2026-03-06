@@ -35,6 +35,7 @@ logger.setLevel(log_level)
 
 DEFAULT_MODEL_NAME = os.getenv("NEMO_MODEL", "unknown-model")  # Currently only for logging
 DEFAULT_GUARDRAILS_SERVER_URL = os.getenv("GUARDRAILS_SERVER_URL", "http://nemo-guardrails-service:8000")
+DEFAULT_NEMO_CONFIG_ID = os.getenv("NEMO_CONFIG_ID", "unknown-config-id")
 CHECK_PATH = "/v1/guardrail/checks"
 HEADERS = {
     "Content-Type": "application/json",
@@ -56,15 +57,18 @@ class NemoCheck(Plugin):
         if config.config and isinstance(config.config, dict):
             server_url = config.config.get("nemo_guardrails_url", DEFAULT_GUARDRAILS_SERVER_URL)
             self.model_name = config.config.get("nemo_model", DEFAULT_MODEL_NAME)
+            self.nemo_config_id = config.config.get("nemo_config_id", DEFAULT_NEMO_CONFIG_ID)
         else:
             server_url = DEFAULT_GUARDRAILS_SERVER_URL
             self.model_name = DEFAULT_MODEL_NAME
+            self.nemo_config_id = DEFAULT_NEMO_CONFIG_ID
             logger.warning("Plugin config is empty or invalid, using default server URL and model")
 
         # Construct full endpoint URL
         self.check_endpoint = server_url.rstrip("/") + CHECK_PATH
         logger.info(f"NeMo Guardrails endpoint for check plugin: {self.check_endpoint}")
         logger.info(f"NeMo model name: {self.model_name}")
+        logger.info(f"NeMo config ID: {self.nemo_config_id}")
 
     async def prompt_pre_fetch(self, payload: PromptPrehookPayload, context: PluginContext) -> PromptPrehookResult:
         """The plugin hook run before a prompt is retrieved and rendered.
@@ -106,6 +110,7 @@ class NemoCheck(Plugin):
         assert payload.args is not None
         check_nemo_payload = {
             "model": self.model_name,
+            "guardrails": {"config_id": self.nemo_config_id},
             "messages": [
                 {
                     "role": "assistant",
@@ -204,6 +209,7 @@ class NemoCheck(Plugin):
         # Build NeMo check payload for tool response
         check_nemo_payload = {
             "model": self.model_name,
+            "guardrails": {"config_id": self.nemo_config_id},
             "messages": [{"role": "tool", "content": text_content, "name": tool_name}],
         }
 
