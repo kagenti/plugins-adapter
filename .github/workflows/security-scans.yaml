@@ -1,0 +1,357 @@
+# Security Scans - Comprehensive security checks
+#
+# Phases:
+# - Phase A: Dependency Review, Shellcheck, YAML lint, Hadolint
+# - Phase B: Python security (Bandit)
+# - Phase C: Container/IaC (Trivy)
+# - Phase D: CodeQL, Action pinning
+#
+name: Security Scans
+
+on:
+  pull_request:
+    branches: [main]
+
+# Jobs request only what they need through explicit permissions
+permissions: {}
+
+jobs:
+  # ============================================================================
+  # Phase A: Basic Security Checks
+  # ============================================================================
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: List dependency manifests
+        # This project should primarily be using pyproject.toml over requirements.txt
+        # but we can check all in case they happen to be added.
+        run: |
+          echo "=== Searching for dependency manifests ==="
+          echo ""
+          MANIFESTS=$(find . -type f \( \
+            -name "pyproject.toml" -o \
+            -name "uv.lock" -o \
+            -name "requirements*.txt" \
+          \) 2>/dev/null | grep -v node_modules | grep -v ".git/" | sort || true)
+
+          if [ -z "$MANIFESTS" ]; then
+            echo "No dependency manifests found in this repository."
+          else
+            echo "Found manifests:"
+            echo "$MANIFESTS"
+            echo ""
+            echo "Total: $(echo "$MANIFESTS" | wc -l | tr -d ' ') manifest files"
+          fi
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48  # v4
+        with:
+          # Fail on moderate or higher severity vulnerabilities
+          fail-on-severity: moderate
+          # Block strong copyleft licenses that could affect project licensing
+          deny-licenses: GPL-3.0, AGPL-3.0
+
+  shellcheck:
+    name: Shell Script Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Find shell scripts
+        id: find-scripts
+        run: |
+          echo "=== Finding shell scripts ==="
+          SCRIPTS=$(find . -type f \( -name "*.sh" -o -name "*.bash" \) 2>/dev/null | grep -v ".git/" | grep -v "node_modules/" || true)
+          if [ -z "$SCRIPTS" ]; then
+            echo "No shell scripts found"
+            echo "has_scripts=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Found scripts:"
+            echo "$SCRIPTS"
+            echo "has_scripts=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run shellcheck
+        if: steps.find-scripts.outputs.has_scripts == 'true'
+        run: |
+          echo "=== Running shellcheck ==="
+          FAILED=0
+          for script in $(find . -type f \( -name "*.sh" -o -name "*.bash" \) 2>/dev/null | grep -v ".git/" | grep -v "node_modules/"); do
+            echo "Checking: $script"
+            if ! shellcheck -e SC1091 "$script"; then
+              FAILED=1
+            fi
+            echo ""
+          done
+
+          if [ $FAILED -eq 1 ]; then
+            echo "ERROR: Some scripts failed shellcheck"
+            exit 1
+          fi
+
+          echo "All scripts passed shellcheck"
+
+  yamllint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Create config
+        run: |
+          cat > .yamllint.yaml << 'EOF'
+          extends: relaxed
+          rules:
+            line-length:
+              max: 150
+              level: warning
+            truthy:
+              check-keys: false  # Allow 'on:' in workflows
+            document-start: disable
+            comments:
+              min-spaces-from-content: 1
+            indentation:
+              spaces: 2
+              indent-sequences: whatever  # Allow GitHub Actions style
+          EOF
+
+      - name: Lint YAML files
+        run: |
+          echo "=== Linting YAML files ==="
+          yamllint -c .yamllint.yaml \
+            .github/workflows/ \
+            resources/config/ \
+            plugins/ || true
+
+          echo ""
+          echo "=== Summary ==="
+          yamllint -c .yamllint.yaml -f parsable \
+            .github/workflows/ resources/config/ plugins/ 2>&1 > /tmp/yamllint_output.txt || true
+          ERROR_COUNT=$(grep -c ":error:" /tmp/yamllint_output.txt 2>/dev/null || echo "0")
+          WARNING_COUNT=$(grep -c ":warning:" /tmp/yamllint_output.txt 2>/dev/null || echo "0")
+          echo "Errors: $ERROR_COUNT"
+          echo "Warnings: $WARNING_COUNT"
+
+          # Fail only on errors (not warnings)
+          if [ "$ERROR_COUNT" -gt 0 ] 2>/dev/null; then
+            echo ""
+            echo "ERROR: YAML files have syntax errors. Please fix them."
+            exit 1
+          fi
+
+  hadolint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Find Dockerfiles
+        id: find-dockerfiles
+        run: |
+          DOCKERFILES=$(find . -name "Dockerfile*" -o -name "Containerfile*" -type f 2>/dev/null | grep -v node_modules | grep -v ".git/" || true)
+          if [ -z "$DOCKERFILES" ]; then
+            echo "No Dockerfiles found"
+            echo "has_dockerfiles=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Found Dockerfiles:"
+            echo "$DOCKERFILES"
+            echo "has_dockerfiles=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Hadolint
+        if: steps.find-dockerfiles.outputs.has_dockerfiles == 'true'
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5  # v3.3.0
+        with:
+          dockerfile: "**/Dockerfile*"
+          recursive: true
+          failure-threshold: warning
+          # Common ignores for development Dockerfiles
+          ignore: DL3008,DL3013,DL3018,DL3059
+
+  # ============================================================================
+  # Phase B: Python Security
+  # ============================================================================
+
+  bandit:
+    name: Python Security (Bandit)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Bandit
+        run: pip install bandit[toml]
+
+      - name: Run Bandit security scan
+        run: |
+          echo "=== Bandit Python Security Scan ==="
+          echo ""
+
+          # Run Bandit - scan main code (excluding tests and examples)
+          echo "--- Checking for HIGH severity issues in main code ---"
+          HIGH_ISSUES=$(bandit -r src/ plugins/ \
+            --severity-level high \
+            --confidence-level high \
+            --exclude '**/tests/*,**/.venv/*,**/examples/*' \
+            -f json 2>/dev/null | jq '.results | length' 2>/dev/null || echo "0")
+
+          # Main adapter code
+          if [ "$HIGH_ISSUES" -gt 0 ]; then
+            echo "Found $HIGH_ISSUES HIGH severity issues in main code:"
+            bandit -r src/ plugins/ \
+              --severity-level high \
+              --confidence-level high \
+              --exclude '**/tests/*,**/.venv/*,**/examples/*' \
+              -f txt
+            echo ""
+            echo "ERROR: HIGH severity security issues found. Please fix them."
+            exit 1
+          fi
+
+          # Show all issues (including examples) for visibility
+          echo ""
+          echo "--- Full scan (informational) ---"
+          bandit -r src/ plugins/ \
+            --severity-level medium \
+            --confidence-level medium \
+            --exclude '**/tests/*,**/.venv/*' \
+            -f txt || true
+
+          echo ""
+          echo "No HIGH severity issues found in main code."
+
+  # ============================================================================
+  # Phase C: Container/IaC Security
+  # ============================================================================
+
+  trivy-fs:
+    name: Trivy Filesystem Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      # Show all dependency vulnerabilities (informational)
+      - name: Show all dependency vulnerabilities (informational)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+          ignore-unfixed: true
+          format: 'table'
+
+      # Check for CRITICAL and HIGH vulnerabilities (informational on PRs)
+      - name: Check for CRITICAL and HIGH dependency vulnerabilities
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          ignore-unfixed: true
+          format: 'table'
+
+      - name: Run Trivy config scan (IaC)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # v0.35.0
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          # Focus on main adapter code
+          skip-dirs: 'plugins/examples'
+          exit-code: '1'
+          format: 'table'
+
+  # ============================================================================
+  # Phase D: Advanced Security
+  # ============================================================================
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@0d579ffd059c29b07949a3cce3983f0780820c98  # v3
+        with:
+          languages: python
+          queries: security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@0d579ffd059c29b07949a3cce3983f0780820c98  # v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@0d579ffd059c29b07949a3cce3983f0780820c98  # v3
+        with:
+          category: "/language:python"
+
+  action-pinning:
+    name: Verify Action Pinning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Check for unpinned GitHub Actions
+        run: |
+          echo "=== Checking for unpinned GitHub Actions ==="
+          echo ""
+          echo "Pinning to SHAs prevents supply chain attacks."
+          echo ""
+
+          UNPINNED=$(grep -rh "uses:" .github/workflows/ | grep -v "#" | grep -E "@v[0-9]|@main|@master" | sort -u || true)
+
+          if [ -n "$UNPINNED" ]; then
+            echo "::warning::Found actions not pinned to SHA commits:"
+            echo ""
+            echo "$UNPINNED"
+            echo ""
+            echo "To pin an action, replace:"
+            echo "  uses: actions/checkout@v6"
+            echo "With:"
+            echo "  uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6"
+            echo ""
+            COUNT=$(echo "$UNPINNED" | wc -l | tr -d ' ')
+            echo "Total unpinned actions: $COUNT"
+            echo ""
+            echo "NOTE: This check is informational. Actions should be pinned incrementally."
+          else
+            echo "All actions are pinned to SHA commits!"
+          fi
+
+          # Always exit 0 - this is informational only
+          exit 0
