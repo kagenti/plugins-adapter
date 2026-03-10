@@ -1,6 +1,9 @@
 #FROM python:3.12.12
 FROM public.ecr.aws/docker/library/python:3.12.12-slim
 
+# Set shell options for safer script execution
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Build argument to specify which plugin examples to include dependencies for
 # Comma-separated list of plugin names (e.g., "nemo" or "nemo,other_plugin")
 ARG PLUGIN_DEPS=""
@@ -11,6 +14,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=docker.io/astral/uv:latest /uv /uvx /bin/
+
+# Create non-root user for running the application with home directory
+RUN groupadd -r appuser && useradd -r -g appuser -m -d /home/appuser appuser
 
 # Set working directory
 WORKDIR /app
@@ -32,14 +38,14 @@ COPY plugins ./plugins/
 # Or for multiple: docker build --build-arg PLUGIN_DEPS="nemo,other_plugin" -t plugins-adapter .
 RUN if [ -n "$PLUGIN_DEPS" ]; then \
         echo "Installing dependencies for plugins: $PLUGIN_DEPS"; \
-        echo "$PLUGIN_DEPS" | tr ',' '\n' | while read plugin; do \
+        echo "$PLUGIN_DEPS" | tr ',' '\n' | while read -r plugin; do \
             plugin=$(echo "$plugin" | xargs); \
             if [ -n "$plugin" ]; then \
                 plugin_dir="plugins/examples/$plugin"; \
                 req_file="$plugin_dir/pyproject.toml"; \
                 if [ -f "$req_file" ]; then \
                     echo "Installing dependencies from $plugin_dir"; \
-                    uv pip install --no-cache $plugin_dir; \
+                    uv pip install --no-cache "$plugin_dir"; \
                 else \
                     echo "Warning: No pyproject.toml found for plugin '$plugin' at $req_file"; \
                 fi; \
@@ -48,6 +54,17 @@ RUN if [ -n "$PLUGIN_DEPS" ]; then \
     else \
         echo "No plugin dependencies specified (use --build-arg PLUGIN_DEPS=\"plugin1,plugin2\" to include)"; \
     fi
+
+# Change ownership of app directory and home directory to non-root user
+RUN chown -R appuser:appuser /app && \
+    mkdir -p /home/appuser/.cache && \
+    chown -R appuser:appuser /home/appuser
+
+# Switch to non-root user
+USER appuser
+
+# Set environment variable for uv cache
+ENV UV_CACHE_DIR=/home/appuser/.cache/uv
 
 # Expose the gRPC port
 EXPOSE 50052
