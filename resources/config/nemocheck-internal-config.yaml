@@ -14,6 +14,8 @@ plugins:
       nemo_guardrails_url: "http://nemo-guardrails-service:8000"
       # Replace with model name guardrailed by NeMo, for logging
       nemo_model: "model-org/guardrailed-model"
+      # Replace with nemo rail name
+      nemo_config_id: "rails-custom-action"
 
 # Plugin directories to scan
 plugin_dirs:
