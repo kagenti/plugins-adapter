@@ -1,17 +1,22 @@
 #!/bin/bash
+# shellcheck disable=all
+# Latest envoy_data_plane may cause issues, skipping shellcheck for now
+# to confirm this still can otherwise work
+
+set -euo pipefail
 
 uv sync --group proto
 cd ..
 git clone git@github.com:cetanu/envoy_data_plane.git
-cd envoy_data_plane
+cd envoy_data_plane || exit
 python build.py
-cd ..
+cd .. || exit
 rm -rf plugins-adapter/src/envoy || true
 cp -r envoy_data_plane/src/envoy_data_plane_pb2/envoy plugins-adapter/src/
 
 #envoy xds folders
 git clone https://github.com/cncf/xds.git
-rm -rf plugins-adapter/src/xds  plugins-adapter/src/validate plugins-adapter/src/udpa
+rm -rf plugins-adapter/src/xds plugins-adapter/src/validate plugins-adapter/src/udpa
 cp -rf xds/python/xds xds/python/validate xds/python/udpa plugins-adapter/src/
 
-cd plugins-adapter
+cd plugins-adapter || exit
