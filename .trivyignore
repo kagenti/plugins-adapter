@@ -1,0 +1,17 @@
+# Trivy Ignore File
+# This file contains exceptions for Trivy security scans with justifications
+
+# KSV-0014: readOnlyRootFilesystem should be true
+# Justification: Setting readOnlyRootFilesystem to true requires additional complexity.
+# The container already runs as non-root (UID 1000) with no privilege escalation and
+# all capabilities dropped, providing strong security. The writable filesystem is
+# needed for uv to manage the Python virtual environment at runtime.
+# Risk: LOW - Non-root user and dropped capabilities prevent most attack vectors
+#
+# Alternative solutions if read-only filesystem is required:
+# 1. Init container: Copy .venv to emptyDir volume before main container starts
+# 2. System-wide install: Install Python packages system-wide instead of venv
+# 3. Pre-built venv volume: Use a PersistentVolume with pre-populated venv
+# 4. Distroless image: Use distroless Python image with packages baked in
+# 5. uv --frozen flag: Use uv run --frozen to prevent runtime venv modifications
+AVD-KSV-0014
