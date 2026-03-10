@@ -36,4 +36,4 @@ fi
 PLUGINS_CONFIG_PATH=${PLUGINS_CONFIG_PATH:-./resources/plugins/config.yaml}
 
 echo "✓  Using plugin config from: ${PLUGINS_CONFIG_PATH}"
-python ${API_SERVER_SCRIPT}
+python "${API_SERVER_SCRIPT}"
