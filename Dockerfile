@@ -16,7 +16,8 @@ RUN apt-get update \
 COPY --from=docker.io/astral/uv:latest /uv /uvx /bin/
 
 # Create non-root user for running the application with home directory
-RUN groupadd -r appuser && useradd -r -g appuser -m -d /home/appuser appuser
+# Using UID/GID 1000 to match Kubernetes securityContext
+RUN groupadd -g 1000 appuser && useradd -u 1000 -g appuser -m -d /home/appuser appuser
 
 # Set working directory
 WORKDIR /app

@@ -27,12 +27,30 @@ spec:
       labels:
         app: plugins-adapter
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: plugins-adapter
           image: plugins-adapter:0.1.0
           # command: ["bash", "-c","--"]
           # args: ["while true; do sleep 3600; done"]
           # imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
+            seccompProfile:
+              type: RuntimeDefault
           env:
             - name: PLUGINS_SERVER_HOST
               value: "0.0.0.0"
