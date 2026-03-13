@@ -9,21 +9,21 @@
 # Reference: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default: all maintainers review everything
-* @kagenti/maintainers
+* @kagenti/plugin-adapters-maintainers
 
 # CI and developer tooling
-.github/ @kagenti/maintainers
-Makefile @kagenti/maintainers
-pyproject.toml @kagenti/maintainers
-.pre-commit-config.yaml @kagenti/maintainers
+.github/ @kagenti/plugin-adapters-maintainers
+Makefile @kagenti/plugin-adapters-maintainers
+pyproject.toml @kagenti/plugin-adapters-maintainers
+.pre-commit-config.yaml @kagenti/plugin-adapters-maintainers
 
 # Core server implementation — highest impact changes
-src/ @kagenti/maintainers
+src/ @kagenti/plugin-adapters-maintainers
 
 # Plugin framework and examples
-plugins/ @kagenti/maintainers
+plugins/ @kagenti/plugin-adapters-maintainers
 
 # Documentation and governance
-*.md @kagenti/maintainers
-CODEOWNERS @kagenti/maintainers
-SECURITY.md @kagenti/maintainers
+*.md @kagenti/plugin-adapters-maintainers
+CODEOWNERS @kagenti/plugin-adapters-maintainers
+SECURITY.md @kagenti/plugin-adapters-maintainers
