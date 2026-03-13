@@ -60,6 +60,7 @@ jobs:
           images: ghcr.io/${{ github.repository }}/plugins-adapter
           tags: |
             type=ref,event=tag
+            type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
 
       # Focus on nemocheck plugin in image for now
