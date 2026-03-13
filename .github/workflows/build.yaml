@@ -32,7 +32,7 @@ jobs:
           git clone https://github.com/cetanu/envoy_data_plane.git ../envoy_data_plane
           cd ../envoy_data_plane
           git checkout 86181df8ddb05f1d07994e58374fb93139d2bb70
-          python build.py
+          uv run --project ../plugins-adapter python build.py
           cd -
           rm -rf src/envoy
           cp -r ../envoy_data_plane/src/envoy_data_plane_pb2/envoy src/
