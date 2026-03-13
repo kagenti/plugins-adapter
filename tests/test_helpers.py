@@ -7,9 +7,6 @@ Covers: set_result_in_body, get_modified_response,
 # Standard
 import json
 
-# Third-Party
-import pytest
-
 # First-Party
 from cpex.framework import PluginViolation
 

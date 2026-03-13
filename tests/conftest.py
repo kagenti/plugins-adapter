@@ -50,3 +50,13 @@ def mock_manager():
     mock = Mock()
     mock.invoke_hook = AsyncMock()
     return mock
+
+
+@pytest.fixture
+def sample_tool_result_body():
+    """Sample MCP tool result response body."""
+    return {
+        "jsonrpc": "2.0",
+        "id": "test-123",
+        "result": {"content": [{"type": "text", "text": "Tool execution result"}]},
+    }
