@@ -1,0 +1,74 @@
+name: Build-Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - test-image
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba  # v6
+
+      - name: Build protobufs
+        # Adaptation of the proto-build script for Github runners
+        run: |
+          uv sync --group proto
+          git clone https://github.com/cetanu/envoy_data_plane.git ../envoy_data_plane
+          cd ../envoy_data_plane
+          git checkout 86181df8ddb05f1d07994e58374fb93139d2bb70
+          python build.py
+          cd -
+          rm -rf src/envoy
+          cp -r ../envoy_data_plane/src/envoy_data_plane_pb2/envoy src/
+          git clone https://github.com/cncf/xds.git ../xds
+          rm -rf src/xds src/validate src/udpa
+          cp -rf ../xds/python/xds ../xds/python/validate ../xds/python/udpa src/
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a  # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd  # v4
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2  # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf  # v6
+        with:
+          images: ghcr.io/${{ github.repository }}/plugins-adapter
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+
+      # Focus on nemocheck plugin in image for now
+      - name: Build and push
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294  # v7
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: PLUGIN_DEPS=nemocheck
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
