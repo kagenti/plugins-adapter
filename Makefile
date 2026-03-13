@@ -1,4 +1,4 @@
-.PHONY: build load all deploy exec log lint fmt
+.PHONY: build load all deploy exec log lint
 .IGNORE: delete
 
 
@@ -50,9 +50,6 @@ deploy:
 
 lint:
 	pre-commit run --all-files
-
-fmt:
-	uv run ruff format .
 
 redeploy: delete deploy
 

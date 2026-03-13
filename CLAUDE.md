@@ -25,8 +25,7 @@ plugins-adapter/
 
 | Task | Command |
 |------|---------|
-| Lint | `make lint` |
-| Format | `make fmt` |
+| Lint + Format | `make lint` |
 | Test | `uv run pytest tests/ -v` |
 | Build image | `make build PLUGIN_DEPS=nemocheck` |
 | Deploy to Kind | `make all PLUGIN_DEPS=nemocheck` |
