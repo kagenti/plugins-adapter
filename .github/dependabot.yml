@@ -1,0 +1,64 @@
+# Dependabot - Automated dependency updates
+#
+# Keeps GitHub Actions, Python (pip/uv), and Docker base images up to date.
+# Weekly schedule avoids noisy daily PRs while staying current.
+#
+# Reference: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+#
+version: 2
+updates:
+  # GitHub Actions - keep workflow action SHAs current
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    reviewers:
+      - kagenti/maintainers
+    labels:
+      - dependencies
+      - github-actions
+
+  # Python dependencies (root pyproject.toml)
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+    reviewers:
+      - kagenti/maintainers
+    labels:
+      - dependencies
+      - python
+    # Limit open PRs to avoid noise; security updates bypass this limit
+    open-pull-requests-limit: 5
+
+  # Python dependencies (nemocheck plugin)
+  - package-ecosystem: pip
+    directory: /plugins/examples/nemocheck
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+    reviewers:
+      - kagenti/maintainers
+    labels:
+      - dependencies
+      - python
+      - plugins
+    open-pull-requests-limit: 3
+
+  # Docker base image (root Dockerfile)
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:30"
+    reviewers:
+      - kagenti/maintainers
+    labels:
+      - dependencies
+      - docker

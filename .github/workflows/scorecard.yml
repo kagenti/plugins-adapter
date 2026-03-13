@@ -1,0 +1,68 @@
+# OpenSSF Scorecard - Security health metrics for Open Source
+#
+# Measures repository security posture across 18+ checks:
+# token permissions, branch protection, dependency update tools,
+# fuzzing, SAST, vulnerabilities, and more.
+#
+# Results are uploaded to the GitHub Security tab and OpenSSF Scorecard API.
+# View badge at: https://api.securityscorecards.dev/projects/github.com/kagenti/plugins-adapter
+#
+# NOTE: Scorecard only works on 'schedule' and 'push' triggers, NOT 'pull_request'
+# This is a GitHub/Scorecard limitation for result publishing.
+# See: https://github.com/ossf/scorecard-action#workflow-restrictions
+#
+# Token Requirements:
+# - id-token: write for OIDC verification when publishing results
+# - security-events: write to upload SARIF to Security tab
+#
+name: OpenSSF Scorecard
+
+on:
+  # Run weekly on Monday at 6:30 AM UTC (offset from kagenti/kagenti to spread load)
+  schedule:
+    - cron: '30 6 * * 1'
+  # Run on push to main to track regressions immediately
+  push:
+    branches: [main]
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Deny all permissions at workflow level; each job declares only what it needs
+# Required by Scorecard: https://github.com/ossf/scorecard-action#workflow-restrictions
+permissions: {}
+
+jobs:
+  scorecard:
+    name: Scorecard Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write  # Upload SARIF to Security tab
+      id-token: write         # OIDC token for result verification and publishing
+      contents: read          # Read repository contents
+      actions: read           # Read workflow runs (needed for Token-Permissions check)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
+        with:
+          persist-credentials: false
+
+      - name: Run OpenSSF Scorecard
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a  # v2.4.3
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          # Publish results to OpenSSF API (enables public badge and tracking)
+          publish_results: true
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98  # v4
+        with:
+          sarif_file: scorecard.sarif
+
+      - name: Upload Scorecard results as artifact
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        with:
+          name: scorecard-results
+          path: scorecard.sarif
+          retention-days: 30
