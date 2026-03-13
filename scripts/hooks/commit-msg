@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# commit-msg hook: enforce DCO sign-off and block Co-Authored-By AI attribution
+set -euo pipefail
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Check for DCO sign-off
+if ! grep -qE "^Signed-off-by: .+ <.+@.+>" "$COMMIT_MSG_FILE"; then
+  echo "ERROR: Commit message missing Signed-off-by trailer (DCO required)."
+  echo "  Use: git commit -s"
+  exit 1
+fi
+
+# Block Co-Authored-By for AI (use Assisted-By instead)
+if grep -qiE "^Co-[Aa]uthored-[Bb]y:.*claude|^Co-[Aa]uthored-[Bb]y:.*anthropic|^Co-[Aa]uthored-[Bb]y:.*openai|^Co-[Aa]uthored-[Bb]y:.*chatgpt" "$COMMIT_MSG_FILE"; then
+  echo "ERROR: Use 'Assisted-By' instead of 'Co-Authored-By' for AI attribution."
+  echo "  Replace with: Assisted-By: Claude (Anthropic AI) <noreply@anthropic.com>"
+  exit 1
+fi
+
+exit 0

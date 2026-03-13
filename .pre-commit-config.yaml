@@ -17,3 +17,11 @@ repos:
       args: [ --fix ]
     # Run the formatter.
     - id: ruff-format
+
+- repo: local
+  hooks:
+    - id: commit-msg-dco
+      name: DCO sign-off check
+      language: script
+      entry: scripts/hooks/commit-msg
+      stages: [commit-msg]
