@@ -4,9 +4,12 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - test-image
   workflow_dispatch:
+    inputs:
+      plugin_deps:
+        description: 'Plugin dependencies to include (comma-separated, e.g., "nemocheck" or "nemo,nemocheck")'
+        required: false
+        default: 'nemocheck'
 
 permissions: {}
 
@@ -53,23 +56,48 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set plugin deps and image suffix
+        id: plugin_deps
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            DEPS="${{ github.event.inputs.plugin_deps }}"
+          else
+            DEPS="nemocheck"
+          fi
+          echo "deps=$DEPS" >> $GITHUB_OUTPUT
+
+          # Normalize plugin deps for image suffix (replace commas with hyphens)
+          # Examples:
+          #   "nemocheck" -> "nemocheck"
+          #   "nemo,nemocheck" -> "nemo-nemocheck"
+          SUFFIX=$(echo "$DEPS" | tr ',' '-')
+          echo "suffix=$SUFFIX" >> $GITHUB_OUTPUT
+
+          # Example resulting image names:
+          # For tag v1.0.0 with PLUGIN_DEPS=nemocheck:
+          #   ghcr.io/<repo>/plugins-adapter-nemocheck:v1.0.0
+          #   ghcr.io/<repo>/plugins-adapter-nemocheck:latest
+          # For tag v1.0.0 with PLUGIN_DEPS=nemo,nemocheck:
+          #   ghcr.io/<repo>/plugins-adapter-nemo-nemocheck:v1.0.0
+          #   ghcr.io/<repo>/plugins-adapter-nemo-nemocheck:latest
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf  # v6
         with:
           images: ghcr.io/${{ github.repository }}/plugins-adapter
+          flavor: |
+            suffix=-${{ steps.plugin_deps.outputs.suffix }},onlatest=true
           tags: |
             type=ref,event=tag
-            type=ref,event=branch
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
 
-      # Focus on nemocheck plugin in image for now
       - name: Build and push
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294  # v7
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          build-args: PLUGIN_DEPS=nemocheck
+          build-args: PLUGIN_DEPS=${{ steps.plugin_deps.outputs.deps }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
