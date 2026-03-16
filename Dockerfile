@@ -50,7 +50,7 @@ RUN if [ -n "$PLUGIN_DEPS" ]; then \
                 else \
                     echo "ERROR: No pyproject.toml found for plugin '$plugin' at $req_file"; \
                     echo "Available plugins:"; \
-                    ls -1 plugins/examples/ | grep -v README.md || true; \
+                    find plugins/examples/ -maxdepth 1 -type d ! -name examples -exec basename {} \; | sort; \
                     exit 1; \
                 fi; \
             fi; \
