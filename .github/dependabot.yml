@@ -18,7 +18,7 @@ updates:
       - kagenti/plugin-adapters-maintainers
     labels:
       - dependencies
-      - github-actions
+      - github_actions
 
   # Python dependencies (root pyproject.toml)
   - package-ecosystem: pip
