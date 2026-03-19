@@ -1,0 +1,29 @@
+# CODEOWNERS
+#
+# Defines code ownership for automatic review requests on pull requests.
+# Owners are notified when files in their area are changed.
+#
+# Syntax: <pattern> <owner> [<owner> ...]
+# Patterns follow .gitignore rules. Last matching rule wins.
+#
+# Reference: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default: all maintainers review everything
+* @kagenti/plugin-adapters-maintainers
+
+# CI and developer tooling
+.github/ @kagenti/plugin-adapters-maintainers
+Makefile @kagenti/plugin-adapters-maintainers
+pyproject.toml @kagenti/plugin-adapters-maintainers
+.pre-commit-config.yaml @kagenti/plugin-adapters-maintainers
+
+# Core server implementation — highest impact changes
+src/ @kagenti/plugin-adapters-maintainers
+
+# Plugin framework and examples
+plugins/ @kagenti/plugin-adapters-maintainers
+
+# Documentation and governance
+*.md @kagenti/plugin-adapters-maintainers
+CODEOWNERS @kagenti/plugin-adapters-maintainers
+SECURITY.md @kagenti/plugin-adapters-maintainers
