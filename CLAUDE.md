@@ -59,3 +59,28 @@ All commits must include a `Signed-off-by` trailer:
 ```sh
 git commit -s -m "feat: add feature"
 ```
+
+## Orchestration
+
+This repo includes orchestrate skills for enhancing related repos.
+Run from within this repo after cloning a target into `.repos/<target>/`:
+
+```bash
+git clone git@github.com:org/repo.git .repos/repo-name
+# then invoke via Claude Code:
+# /orchestrate .repos/repo-name
+```
+
+| Skill | Description |
+|-------|-------------|
+| `orchestrate` | Router — start here with `/orchestrate <repo-path>` |
+| `orchestrate:scan` | Assess repo structure, tech stack, and gaps |
+| `orchestrate:plan` | Create a phased enhancement plan |
+| `orchestrate:precommit` | Add pre-commit hooks and linting baseline |
+| `orchestrate:tests` | Add test infrastructure and initial coverage |
+| `orchestrate:ci` | Add CI workflows (lint, test, build, security, dependabot) |
+| `orchestrate:security` | Add security governance (CODEOWNERS, SECURITY.md) |
+| `orchestrate:replicate` | Bootstrap orchestrate skills into the target |
+| `skills:scan` | Discover skills in any repo |
+| `skills:write` | Author new skills |
+| `skills:validate` | Validate skill structure and frontmatter |
