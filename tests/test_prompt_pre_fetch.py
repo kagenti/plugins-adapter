@@ -10,11 +10,11 @@ from unittest.mock import Mock
 # Third-Party
 import pytest
 
-# First-Party
-from cpex.framework import PluginViolation, PromptPrehookPayload
-
 # Local
 from conftest import make_hook_result
+
+# First-Party
+from cpex.framework import PluginViolation, PromptPrehookPayload
 
 
 @pytest.fixture

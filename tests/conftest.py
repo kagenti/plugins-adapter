@@ -1,7 +1,6 @@
 """Shared pytest fixtures for plugins-adapter unit tests."""
 
 # Standard
-import json
 import sys
 from unittest.mock import AsyncMock, MagicMock, Mock
 
