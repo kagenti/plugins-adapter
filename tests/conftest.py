@@ -1,11 +1,21 @@
 """Shared pytest fixtures for plugins-adapter unit tests."""
 
 # Standard
+import json
 import sys
 from unittest.mock import AsyncMock, MagicMock, Mock
 
 # Third-Party
 import pytest
+
+
+def make_hook_result(continue_processing=True, modified_payload=None, violation=None):
+    """Build a mock hook result for plugin manager invoke_hook calls."""
+    result = Mock()
+    result.continue_processing = continue_processing
+    result.modified_payload = modified_payload
+    result.violation = violation
+    return result
 
 
 @pytest.fixture

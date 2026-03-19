@@ -43,9 +43,25 @@ def test_get_modified_response_returns_body_response(mock_envoy_modules):
         "id": "1",
         "result": {"content": [{"type": "text", "text": "hello"}]},
     }
-    response = src.server.get_modified_response(body)
+
+    captured = []
+    original_dumps = json.dumps
+
+    def spy(obj, **kwargs):
+        if isinstance(obj, dict) and "result" in obj:
+            captured.append(obj)
+        return original_dumps(obj, **kwargs)
+
+    json.dumps = spy
+    try:
+        response = src.server.get_modified_response(body)
+    finally:
+        json.dumps = original_dumps
 
     assert response is not None
+    assert len(captured) == 1
+    assert captured[0] == body
+    assert captured[0]["result"]["content"][0]["text"] == "hello"
 
 
 def test_create_mcp_immediate_error_response_default_code(mock_envoy_modules):

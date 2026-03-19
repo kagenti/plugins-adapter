@@ -13,6 +13,9 @@ import pytest
 # First-Party
 from cpex.framework import PluginViolation, ToolPreInvokePayload
 
+# Local
+from conftest import make_hook_result
+
 
 @pytest.fixture
 def tool_call_body():
@@ -28,21 +31,12 @@ def tool_call_body():
     }
 
 
-def _make_result(continue_processing=True, modified_payload=None, violation=None):
-    """Build a mock hook result."""
-    result = Mock()
-    result.continue_processing = continue_processing
-    result.modified_payload = modified_payload
-    result.violation = violation
-    return result
-
-
 @pytest.mark.asyncio
 async def test_getToolPreInvokeResponse_continue_no_modification(mock_envoy_modules, mock_manager, tool_call_body):
     """Plugin allows the tool call through with no argument changes."""
     import src.server
 
-    mock_manager.invoke_hook.return_value = (_make_result(), None)
+    mock_manager.invoke_hook.return_value = (make_hook_result(), None)
     src.server.manager = mock_manager
 
     response = await src.server.getToolPreInvokeResponse(tool_call_body)
@@ -64,7 +58,7 @@ async def test_getToolPreInvokeResponse_continue_with_modified_args(mock_envoy_m
     modified_payload = Mock()
     modified_payload.args = {"tool_args": modified_args}
 
-    mock_manager.invoke_hook.return_value = (_make_result(modified_payload=modified_payload), None)
+    mock_manager.invoke_hook.return_value = (make_hook_result(modified_payload=modified_payload), None)
     src.server.manager = mock_manager
 
     captured_bodies = []
@@ -97,7 +91,7 @@ async def test_getToolPreInvokeResponse_blocked_with_violation(mock_envoy_module
         description="The tool arguments contain disallowed content",
         code="ARGS_VIOLATION",
     )
-    mock_manager.invoke_hook.return_value = (_make_result(continue_processing=False, violation=violation), None)
+    mock_manager.invoke_hook.return_value = (make_hook_result(continue_processing=False, violation=violation), None)
     src.server.manager = mock_manager
 
     captured_bodies = []
@@ -134,7 +128,7 @@ async def test_getToolPreInvokeResponse_payload_carries_tool_name(mock_envoy_mod
         "method": "tools/call",
         "params": {"name": "my_special_tool", "arguments": {}},
     }
-    mock_manager.invoke_hook.return_value = (_make_result(), None)
+    mock_manager.invoke_hook.return_value = (make_hook_result(), None)
     src.server.manager = mock_manager
 
     await src.server.getToolPreInvokeResponse(body)

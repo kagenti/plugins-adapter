@@ -13,6 +13,9 @@ import pytest
 # First-Party
 from cpex.framework import PluginViolation, PromptPrehookPayload
 
+# Local
+from conftest import make_hook_result
+
 
 @pytest.fixture
 def prompt_body():
@@ -28,20 +31,12 @@ def prompt_body():
     }
 
 
-def _make_result(continue_processing=True, modified_payload=None, violation=None):
-    result = Mock()
-    result.continue_processing = continue_processing
-    result.modified_payload = modified_payload
-    result.violation = violation
-    return result
-
-
 @pytest.mark.asyncio
 async def test_getPromptPreFetchResponse_continue_no_modification(mock_envoy_modules, mock_manager, prompt_body):
     """Plugin allows the prompt fetch with no changes."""
     import src.server
 
-    mock_manager.invoke_hook.return_value = (_make_result(), None)
+    mock_manager.invoke_hook.return_value = (make_hook_result(), None)
     src.server.manager = mock_manager
 
     response = await src.server.getPromptPreFetchResponse(prompt_body)
@@ -63,7 +58,7 @@ async def test_getPromptPreFetchResponse_continue_with_modified_args(mock_envoy_
     modified_payload = Mock()
     modified_payload.args = {"tool_args": modified_args}
 
-    mock_manager.invoke_hook.return_value = (_make_result(modified_payload=modified_payload), None)
+    mock_manager.invoke_hook.return_value = (make_hook_result(modified_payload=modified_payload), None)
     src.server.manager = mock_manager
 
     captured_bodies = []
@@ -96,7 +91,7 @@ async def test_getPromptPreFetchResponse_blocked(mock_envoy_modules, mock_manage
         description="This prompt template is restricted",
         code="PROMPT_BLOCKED",
     )
-    mock_manager.invoke_hook.return_value = (_make_result(continue_processing=False, violation=violation), None)
+    mock_manager.invoke_hook.return_value = (make_hook_result(continue_processing=False, violation=violation), None)
     src.server.manager = mock_manager
 
     captured_bodies = []
