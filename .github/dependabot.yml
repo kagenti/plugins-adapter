@@ -15,7 +15,7 @@ updates:
       day: monday
       time: "06:00"
     reviewers:
-      - kagenti/maintainers
+      - kagenti/plugin-adapters-maintainers
     labels:
       - dependencies
       - github-actions
@@ -28,7 +28,7 @@ updates:
       day: monday
       time: "06:30"
     reviewers:
-      - kagenti/maintainers
+      - kagenti/plugin-adapters-maintainers
     labels:
       - dependencies
       - python
@@ -43,7 +43,7 @@ updates:
       day: monday
       time: "07:00"
     reviewers:
-      - kagenti/maintainers
+      - kagenti/plugin-adapters-maintainers
     labels:
       - dependencies
       - python
@@ -58,7 +58,7 @@ updates:
       day: monday
       time: "07:30"
     reviewers:
-      - kagenti/maintainers
+      - kagenti/plugin-adapters-maintainers
     labels:
       - dependencies
       - docker
