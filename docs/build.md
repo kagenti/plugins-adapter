@@ -5,8 +5,7 @@
 ### Automated Build
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+uv sync --group proto
 ./proto-build.sh
 ```
 
