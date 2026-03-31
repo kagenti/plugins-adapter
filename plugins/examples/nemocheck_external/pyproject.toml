@@ -17,7 +17,7 @@ description = "NemoCheck external plugin"
 requires-python = ">=3.11,<3.14"
 
 dependencies = [
-    "cpex",
+    "cpex==0.1.0.dev10",
     "mcp>=1.16.0",
 ]
 
@@ -30,4 +30,3 @@ dependencies = [
 packages = []
 
 [tool.uv.sources]
-cpex = { git = "https://github.com/contextforge-org/contextforge-plugins-framework.git" }
