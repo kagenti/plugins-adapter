@@ -2,8 +2,11 @@ apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
   name: plugins-adapter-filter
+  # Note this uses the root namespace. This can be moved depending on
+  # namespace used for the MCP gateway router
   namespace: istio-system
 spec:
+  priority: 10 # After MCP gateway router if available
   workloadSelector:
     labels:
       istio: ingressgateway
