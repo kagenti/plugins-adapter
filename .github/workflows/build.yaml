@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57  # v6
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57  # v8
 
       - name: Build protobufs
         run: USE_HTTPS=true ./proto-build.sh
@@ -71,7 +71,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf  # v6
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf  # v5.6.1
         with:
           images: ghcr.io/${{ github.repository }}/plugins-adapter
           flavor: |
@@ -81,7 +81,7 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
 
       - name: Build and push
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294  # v7
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294  # v6.10.0
         with:
           context: .
           push: true
