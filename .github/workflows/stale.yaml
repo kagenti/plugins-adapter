@@ -18,4 +18,4 @@ permissions:
 
 jobs:
   stale:
-    uses: kagenti/.github/.github/workflows/stale.yaml@main
+    uses: kagenti/.github/.github/workflows/stale.yaml@679a2cd1cfde7eed742cf76e9f6608eb91cf1bdd  # main
