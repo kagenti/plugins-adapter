@@ -1,0 +1,37 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: single-server-plugins-adapter-filter
+  namespace: istio-system
+spec:
+  workloadSelector:
+    labels:
+      app: pod-blog  # Changed from istio: ingressgateway
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND  # Changed from GATEWAY
+      listener:
+        portNumber: 50052  # Changed from 8080
+        filterChain:
+          filter:
+            name: "envoy.filters.network.http_connection_manager"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.ext_proc
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.ext_proc.v3.ExternalProcessor
+          failure_mode_allow: false
+          mutation_rules:
+            allow_all_routing: true
+          processing_mode:
+            request_header_mode: 'SEND'
+            response_header_mode: 'SEND'
+            request_body_mode: 'BUFFERED'
+            response_body_mode: 'BUFFERED'
+            request_trailer_mode: 'SKIP'
+            response_trailer_mode: 'SKIP'
+          grpc_service:
+            envoy_grpc:
+              cluster_name: outbound|50052||plugins-adapter-service.istio-system.svc.cluster.local

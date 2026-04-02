@@ -80,6 +80,81 @@ class NemoCheck(Plugin):
         Returns:
             The result of the plugin's analysis.
         """
+
+        logger.debug(f"[NemoCheck] Starting prompt pre fetch hook with payload {payload}")
+
+        pmt_name = payload.prompt_id
+        assert payload.args is not None
+        check_nemo_payload = {
+            "model": self.model_name,
+            "guardrails": {"config_id": self.nemo_config_id},
+            "messages": [
+                {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": "call_plug_adap_nem_check_123",
+                            "type": "function",
+                            "function": {
+                                "name": pmt_name,
+                                "arguments": payload.args,
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+
+        try:
+            response = requests.post(self.check_endpoint, headers=HEADERS, json=check_nemo_payload)
+
+            if response.status_code == 200:
+                data = response.json()
+                status = data.get("status", "blocked")
+                logger.debug(f"[NemoCheck] Rails reply: {data}")
+                metadata = data.get("rails_status")
+
+                if status == "success":
+                    return PromptPrehookResult(continue_processing=True, metadata=metadata)
+                else:
+                    logger.info(f"[NemoCheck] Prompt request blocked. Full NeMo response: {data}")
+                    # Extract rail names from rails_status for more informative description
+                    rails_run = list(metadata.keys()) if metadata else []
+                    rails_info = f"Rails: {', '.join(rails_run)}" if rails_run else "No rails info"
+                    violation = PluginViolation(
+                        reason=f"Prompt fetch check failed: {status}",
+                        description=f"{rails_info}",
+                        code="NEMO_RAILS_BLOCKED",
+                        details=metadata,
+                        mcp_error_code=-32602,  # Invalid params
+                    )
+                    return PromptPrehookResult(
+                        continue_processing=False,
+                        violation=violation,
+                        metadata=metadata,
+                    )
+            else:
+                violation = PluginViolation(
+                    reason="Tool Check Unavailable",
+                    description=(
+                        f"Tool request check server returned error. "
+                        f"Status code: {response.status_code}, Response: {response.text}"
+                    ),
+                    code="NEMO_SERVER_ERROR",
+                    details={"status_code": response.status_code},
+                )
+                return PromptPrehookResult(continue_processing=False, violation=violation)
+
+        except Exception as e:
+            logger.error(f"[NemoCheck] Error checking tool request: {e}")
+            violation = PluginViolation(
+                reason="Tool Check Error",
+                description=f"Failed to connect to check server: {str(e)}",
+                code="NEMO_CONNECTION_ERROR",
+                details={"error": str(e)},
+            )
+            return PromptPrehookResult(continue_processing=False, violation=violation)
+
         return PromptPrehookResult(continue_processing=True)
 
     async def prompt_post_fetch(self, payload: PromptPosthookPayload, context: PluginContext) -> PromptPosthookResult:

@@ -205,6 +205,7 @@ async def getPromptPreFetchResponse(body):
     Invokes plugins before a prompt is fetched, allowing for argument validation,
     modification, or blocking of the prompt request.
     """
+    logger.debug(f"****  prompt pre-fetch body: {body} ****")    
     prompt = PromptPrehookPayload(prompt_id=body["params"]["name"], args=body["params"]["arguments"])
     # TODO: hard-coded ids
     global_context = GlobalContext(request_id="1", server_id="2")
@@ -213,14 +214,14 @@ async def getPromptPreFetchResponse(body):
     if not result.continue_processing:
         body_resp = create_mcp_immediate_error_response(
             body,
-            error_message="Tool response forbidden",
+            error_message="Prompt Fetch forbidden",
             violation=result.violation,
         )
     else:
         result_payload = result.modified_payload
         body_mutation = ep.BodyResponse(response=ep.CommonResponse())
         if result_payload is not None and result_payload.args is not None:
-            body["params"]["arguments"] = result_payload.args["tool_args"]
+            body["params"]["arguments"] = result_payload.args["prompt_args"]
             body_mutation = get_modified_response(body)
         else:
             logger.debug("No change in prompt")
