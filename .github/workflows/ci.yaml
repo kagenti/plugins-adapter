@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   pull_request:
     branches: [ "main" ]
 
@@ -58,10 +57,10 @@ jobs:
         working-directory: ./plugins/examples/nemocheck
         run: uv run pytest tests
 
-      # Server tests
+      # Server unit + integration tests
       - name: Install server test dependencies
         run: uv sync --group dev
-      - name: Run server unit tests
+      - name: Run server tests
         run: |
-          echo "Running server unit tests..."
+          echo "Running server unit and integration tests..."
           uv run pytest tests
