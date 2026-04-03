@@ -41,6 +41,7 @@ select = ["E", "F", "I", "W"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src", "tests"]
+known-third-party = ["cpex", "envoy", "grpc", "google"]
 
 [tool.pytest.ini_options]
 log_cli = false

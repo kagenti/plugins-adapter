@@ -7,9 +7,9 @@ and exercise the full request/response flow.
 import json
 
 import pytest
-
 from envoy.config.core.v3 import base_pb2 as core
 from envoy.service.ext_proc.v3 import external_processor_pb2 as ep
+
 from tests.integration.passthrough_plugin.plugin import PassthroughPlugin
 
 pytestmark = pytest.mark.integration

@@ -10,7 +10,6 @@ import pathlib
 import grpc
 import pytest_asyncio
 from cpex.framework import PluginManager
-
 from envoy.service.ext_proc.v3 import external_processor_pb2_grpc as ep_grpc
 
 INTEGRATION_DIR = pathlib.Path(__file__).parent
