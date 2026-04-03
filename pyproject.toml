@@ -39,6 +39,10 @@ exclude = [
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["src", "tests"]
+known-third-party = ["cpex", "envoy", "grpc", "google"]
+
 [tool.pytest.ini_options]
 log_cli = false
 log_cli_level = "INFO"
@@ -49,6 +53,9 @@ log_format = "%(asctime)s [%(module)s] [%(levelname)s] %(message)s"
 log_date_format = "%Y-%m-%d %H:%M:%S"
 testpaths = ["tests"]
 pythonpath = [".", "src"]
+markers = [
+    "integration: integration tests (start real gRPC server)",
+]
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]
