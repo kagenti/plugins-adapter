@@ -62,7 +62,7 @@ jobs:
       # Server unit tests (no proto generation needed — envoy modules are mocked)
       - name: Install server test dependencies
         run: uv sync --group dev
-      - name: Run server tests
+      - name: Run server unit tests
         run: |
           echo "Running server unit tests..."
           uv run pytest tests/ --ignore=tests/integration
