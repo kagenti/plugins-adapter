@@ -39,6 +39,9 @@ exclude = [
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["src", "tests"]
+
 [tool.pytest.ini_options]
 log_cli = false
 log_cli_level = "INFO"
