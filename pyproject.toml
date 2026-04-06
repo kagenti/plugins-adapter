@@ -12,7 +12,7 @@ dependencies = [
 
 [dependency-groups]
 proto = [
-    "requests==2.33.0",
+    "requests==2.33.1",
     "grpcio>=1.78.0",
     "grpcio-tools>=1.78.0",
     "betterproto2==0.9.1",
