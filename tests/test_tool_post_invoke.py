@@ -230,6 +230,31 @@ async def test_process_response_body_buffer_with_sse_format(mock_envoy_modules, 
 
 
 @pytest.mark.asyncio
+async def test_process_response_body_buffer_with_sse_id_prefix(mock_envoy_modules, mock_manager):
+    """SSE stream starting with 'id:' field is detected and parsed correctly."""
+    setup_response_mocks(mock_envoy_modules)
+    import src.server
+
+    setup_manager_with_result(mock_manager)
+    src.server.manager = mock_manager
+
+    tool_result = {
+        "jsonrpc": "2.0",
+        "id": 10,
+        "result": {"content": [{"type": "text", "text": "Echo: my password is secret"}]},
+    }
+    # SSE streams may begin with 'id:' before 'event:' or 'data:' lines
+    sse_body = f"id: sse-event-001\ndata: \n\nevent: message\nid: sse-event-002\ndata: {json.dumps(tool_result)}\n\n"
+    buffer = bytearray(sse_body.encode("utf-8"))
+    response = await src.server.process_response_body_buffer(buffer)
+
+    assert mock_manager.invoke_hook.called
+    payload = mock_manager.invoke_hook.call_args[0][1]
+    verify_payload_content(payload, tool_result["result"], "Echo: my password is secret")
+    assert response is not None
+
+
+@pytest.mark.asyncio
 async def test_process_response_body_buffer_multiple_chunks_scenario(mock_envoy_modules, mock_manager):
     """Multi-chunk buffer is assembled and processed as one unit."""
     setup_response_mocks(mock_envoy_modules)
