@@ -4,6 +4,7 @@ These tests start a real gRPC server with a passthrough test plugin
 and exercise the full request/response flow.
 """
 
+import asyncio
 import json
 
 import pytest
@@ -215,3 +216,38 @@ async def test_response_body_tool_result_blocked(grpc_stub):
         assert "Blocked by test" in error_body["error"]["message"]
     finally:
         PassthroughPlugin.reset()
+
+
+# ---------------------------------------------------------------------------
+# Stream Cancellation (simulates pod rollover)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_stream_cancel_does_not_crash_server(grpc_stub):
+    """Cancelling a bidi stream mid-flight should not crash the server.
+
+    After cancellation, a subsequent request should still succeed,
+    confirming the server is still healthy.
+    """
+    # Open a stream and cancel it without finishing
+    call = grpc_stub.Process()
+    request = ep.ProcessingRequest(
+        request_headers=ep.HttpHeaders(
+            headers=core.HeaderMap(headers=[]),
+        )
+    )
+    await call.write(request)
+    call.cancel()
+
+    # Small delay for the server to process the cancellation
+    await asyncio.sleep(0.1)
+
+    # Verify the server is still operational with a normal request
+    follow_up = ep.ProcessingRequest(
+        request_headers=ep.HttpHeaders(
+            headers=core.HeaderMap(headers=[]),
+        )
+    )
+    response = await send_one(grpc_stub, follow_up)
+    assert response.HasField("request_headers")
