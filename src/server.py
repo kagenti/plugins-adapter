@@ -265,8 +265,8 @@ async def process_response_body_buffer(buffer: bytearray):
     # Handle both SSE format and plain JSON-RPC format
     data = None
 
-    # Check if this is SSE format (starts with "event:" or "data:")
-    if text.strip().startswith(("event:", "data:")):
+    # Check if this is SSE format (starts with "id:", "event:", or "data:")
+    if text.strip().startswith(("event:", "data:", "id:")):
         # Parse SSE format
         lines = text.split("\n")
         for line in lines:
