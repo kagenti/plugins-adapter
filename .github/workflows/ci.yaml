@@ -85,8 +85,26 @@ jobs:
       - name: Install uv
         run: pip install uv
 
+      # Cache compiled protobuf files across CI runs
+      - name: Extract proto commit hash
+        id: proto-hash
+        run: |
+          echo "hash=$(grep 'ENVOY_DATA_PLANE_COMMIT=' proto-build.sh | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache protobuf files
+        id: proto-cache
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7  # v5.0.4
+        with:
+          path: |
+            src/envoy
+            src/xds
+            src/validate
+            src/udpa
+          key: protos-${{ steps.proto-hash.outputs.hash }}
+
       # Build generated protos (gitignored, needed for real envoy imports)
       - name: Build protobuf files
+        if: steps.proto-cache.outputs.cache-hit != 'true'
         run: |
           uv sync --group proto
           USE_HTTPS=true ./proto-build.sh
