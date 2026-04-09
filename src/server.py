@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 import os
+import signal
 from typing import AsyncIterator
 
 import grpc
@@ -23,6 +24,8 @@ from envoy.config.core.v3 import base_pb2 as core
 from envoy.service.ext_proc.v3 import external_processor_pb2 as ep
 from envoy.service.ext_proc.v3 import external_processor_pb2_grpc as ep_grpc
 from envoy.type.v3 import http_status_pb2 as http_status_pb2
+from grpc_health.v1 import health as grpc_health
+from grpc_health.v1 import health_pb2, health_pb2_grpc
 
 # ============================================================================
 # LOGGING CONFIGURATION
@@ -330,108 +333,111 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
         req_body_buf = bytearray()
         resp_body_buf = bytearray()
 
-        async for request in request_iterator:
-            # ----------------------------------------------------------------
-            # Request Headers Processing
-            # ----------------------------------------------------------------
-            if request.HasField("request_headers"):
-                _headers = request.request_headers.headers
-                yield ep.ProcessingResponse(
-                    request_headers=ep.HeadersResponse(
-                        response=ep.CommonResponse(
-                            header_mutation=ep.HeaderMutation(
-                                set_headers=[
-                                    core.HeaderValueOption(
-                                        header=core.HeaderValue(
-                                            key="x-ext-proc-header",
-                                            raw_value="hello-from-ext-proc".encode("utf-8"),
-                                        ),
-                                        append_action=core.HeaderValueOption.APPEND_IF_EXISTS_OR_ADD,
-                                    )
-                                ]
+        try:
+            async for request in request_iterator:
+                # ----------------------------------------------------------------
+                # Request Headers Processing
+                # ----------------------------------------------------------------
+                if request.HasField("request_headers"):
+                    _headers = request.request_headers.headers
+                    yield ep.ProcessingResponse(
+                        request_headers=ep.HeadersResponse(
+                            response=ep.CommonResponse(
+                                header_mutation=ep.HeaderMutation(
+                                    set_headers=[
+                                        core.HeaderValueOption(
+                                            header=core.HeaderValue(
+                                                key="x-ext-proc-header",
+                                                raw_value="hello-from-ext-proc".encode("utf-8"),
+                                            ),
+                                            append_action=core.HeaderValueOption.APPEND_IF_EXISTS_OR_ADD,
+                                        )
+                                    ]
+                                )
                             )
                         )
                     )
-                )
-            # ----------------------------------------------------------------
-            # Response Headers Processing
-            # ----------------------------------------------------------------
-            elif request.HasField("response_headers"):
-                _headers = request.response_headers.headers
-                yield ep.ProcessingResponse(
-                    response_headers=ep.HeadersResponse(
-                        response=ep.CommonResponse(
-                            header_mutation=ep.HeaderMutation(
-                                set_headers=[
-                                    core.HeaderValueOption(
-                                        header=core.HeaderValue(
-                                            key="x-ext-proc-response-header",
-                                            raw_value="processed-by-ext-proc".encode("utf-8"),
-                                        ),
-                                        append_action=core.HeaderValueOption.APPEND_IF_EXISTS_OR_ADD,
-                                    )
-                                ]
+                # ----------------------------------------------------------------
+                # Response Headers Processing
+                # ----------------------------------------------------------------
+                elif request.HasField("response_headers"):
+                    _headers = request.response_headers.headers
+                    yield ep.ProcessingResponse(
+                        response_headers=ep.HeadersResponse(
+                            response=ep.CommonResponse(
+                                header_mutation=ep.HeaderMutation(
+                                    set_headers=[
+                                        core.HeaderValueOption(
+                                            header=core.HeaderValue(
+                                                key="x-ext-proc-response-header",
+                                                raw_value="processed-by-ext-proc".encode("utf-8"),
+                                            ),
+                                            append_action=core.HeaderValueOption.APPEND_IF_EXISTS_OR_ADD,
+                                        )
+                                    ]
+                                )
                             )
                         )
                     )
-                )
 
-            # ----------------------------------------------------------------
-            # Request Body Processing (MCP Tool/Prompt Invocations)
-            # ----------------------------------------------------------------
-            elif request.HasField("request_body") and request.request_body.body:
-                chunk = request.request_body.body
-                req_body_buf.extend(chunk)
+                # ----------------------------------------------------------------
+                # Request Body Processing (MCP Tool/Prompt Invocations)
+                # ----------------------------------------------------------------
+                elif request.HasField("request_body") and request.request_body.body:
+                    chunk = request.request_body.body
+                    req_body_buf.extend(chunk)
 
-                if getattr(request.request_body, "end_of_stream", False):
-                    try:
-                        text = req_body_buf.decode("utf-8")
-                    except UnicodeDecodeError:
-                        logger.debug("Request body not UTF-8; skipping")
-                    else:
-                        logger.info(json.loads(text))
-                        body = json.loads(text)
-                        if "method" in body and body["method"] == "tools/call":
-                            body_resp = await getToolPreInvokeResponse(body)
-                        elif "method" in body and body["method"] == "prompts/get":
-                            body_resp = await getPromptPreFetchResponse(body)
+                    if getattr(request.request_body, "end_of_stream", False):
+                        try:
+                            text = req_body_buf.decode("utf-8")
+                        except UnicodeDecodeError:
+                            logger.debug("Request body not UTF-8; skipping")
                         else:
-                            body_resp = ep.ProcessingResponse(
-                                request_body=ep.BodyResponse(response=ep.CommonResponse())
-                            )
+                            logger.info(json.loads(text))
+                            body = json.loads(text)
+                            if "method" in body and body["method"] == "tools/call":
+                                body_resp = await getToolPreInvokeResponse(body)
+                            elif "method" in body and body["method"] == "prompts/get":
+                                body_resp = await getPromptPreFetchResponse(body)
+                            else:
+                                body_resp = ep.ProcessingResponse(
+                                    request_body=ep.BodyResponse(response=ep.CommonResponse())
+                                )
+                            yield body_resp
+
+                        req_body_buf.clear()
+
+                # ----------------------------------------------------------------
+                # Response Body Processing (MCP Tool Results)
+                # ----------------------------------------------------------------
+                elif request.HasField("response_body"):
+                    logger.debug(f"Processing response body: {request}")
+
+                    # Buffer content if present in this chunk
+                    if request.response_body.body:
+                        chunk = request.response_body.body
+                        resp_body_buf.extend(chunk)
+                        logger.debug(f"Buffered chunk ({len(chunk)} bytes)")
+
+                    # Check for end of stream (regardless of whether this chunk has content)
+                    if getattr(request.response_body, "end_of_stream", False):
+                        logger.debug("End of stream reached, processing complete buffered response")
+
+                        # Process the buffered content
+                        body_resp = await process_response_body_buffer(resp_body_buf)
                         yield body_resp
+                        resp_body_buf.clear()
+                    else:
+                        # Intermediate chunk - acknowledge but don't process yet
+                        logger.debug("Buffering intermediate chunk, waiting for end_of_stream")
+                        yield ep.ProcessingResponse(response_body=ep.BodyResponse(response=ep.CommonResponse()))
 
-                    req_body_buf.clear()
-
-            # ----------------------------------------------------------------
-            # Response Body Processing (MCP Tool Results)
-            # ----------------------------------------------------------------
-            elif request.HasField("response_body"):
-                logger.debug(f"Processing response body: {request}")
-
-                # Buffer content if present in this chunk
-                if request.response_body.body:
-                    chunk = request.response_body.body
-                    resp_body_buf.extend(chunk)
-                    logger.debug(f"Buffered chunk ({len(chunk)} bytes)")
-
-                # Check for end of stream (regardless of whether this chunk has content)
-                if getattr(request.response_body, "end_of_stream", False):
-                    logger.debug("End of stream reached, processing complete buffered response")
-
-                    # Process the buffered content
-                    body_resp = await process_response_body_buffer(resp_body_buf)
-                    yield body_resp
-                    resp_body_buf.clear()
                 else:
-                    # Intermediate chunk - acknowledge but don't process yet
-                    logger.debug("Buffering intermediate chunk, waiting for end_of_stream")
-                    yield ep.ProcessingResponse(response_body=ep.BodyResponse(response=ep.CommonResponse()))
-
-            else:
-                # Unhandled request types
-                logger.warning("Not processed")
-                logger.warning(request)
+                    # Unhandled request types
+                    logger.warning("Not processed")
+                    logger.warning(request)
+        except asyncio.CancelledError:
+            logger.info("Process stream cancelled (client disconnect or pod rollover)")
 
 
 # ============================================================================
@@ -452,13 +458,31 @@ async def serve(host: str = "0.0.0.0", port: int = 50052):
     logger.debug(f"Loaded {manager.plugin_count} plugins")
 
     server = grpc.aio.server()
-    # server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     ep_grpc.add_ExternalProcessorServicer_to_server(ExtProcServicer(), server)
+
+    # Register gRPC health check service for Kubernetes readiness/liveness probes
+    health_servicer = grpc_health.HealthServicer()
+    health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
+
     listen_addr = f"{host}:{port}"
     server.add_insecure_port(listen_addr)
-    logger.info("Starting ext_proc MY server on %s", listen_addr)
+    logger.info("Starting ext_proc server on %s", listen_addr)
     await server.start()
-    # wait forever
+
+    # Mark server as healthy after startup
+    health_servicer.set("", health_pb2.HealthCheckResponse.SERVING)
+
+    # Install SIGTERM handler for graceful drain on pod rollover
+    loop = asyncio.get_running_loop()
+
+    async def _shutdown():
+        logger.info("SIGTERM received — draining in-flight streams (grace=15s)")
+        health_servicer.set("", health_pb2.HealthCheckResponse.NOT_SERVING)
+        await server.stop(grace=15)
+
+    loop.add_signal_handler(signal.SIGTERM, lambda: asyncio.ensure_future(_shutdown()))
+    logger.info("SIGTERM handler registered; waiting for termination")
+
     await server.wait_for_termination()
 
 

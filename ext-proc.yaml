@@ -27,6 +27,8 @@ spec:
       labels:
         app: plugins-adapter
     spec:
+      # Allow 35s for graceful shutdown: 5s preStop + 15s gRPC drain + margin
+      terminationGracePeriodSeconds: 35
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -67,3 +69,23 @@ spec:
               value: "./"
           ports:
             - containerPort: 50052
+          lifecycle:
+            preStop:
+              exec:
+                # Delay SIGTERM so Envoy/Istio can remove this pod from
+                # its upstream list before we start draining streams.
+                command: ["/bin/sleep", "5"]
+          # gRPC health probes rely on the grpc-health-checking service
+          # registered in serve()
+          readinessProbe:
+            grpc:
+              port: 50052
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            grpc:
+              port: 50052
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
