@@ -1,0 +1,17 @@
+plugins:
+  - name: "PassthroughPlugin"
+    kind: "tests.integration.passthrough_plugin.plugin.PassthroughPlugin"
+    description: "Passthrough plugin for integration testing"
+    version: "0.1.0"
+    hooks: ["tool_pre_invoke", "tool_post_invoke"]
+    mode: "sequential"
+    config: {}
+
+plugin_dirs:
+  - "tests/integration/passthrough_plugin"
+
+plugin_settings:
+  parallel_execution_within_band: false
+  plugin_timeout: 10
+  fail_on_plugin_error: true
+  enable_plugin_api: false
