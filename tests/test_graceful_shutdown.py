@@ -79,6 +79,7 @@ async def test_serve_sigterm_triggers_graceful_stop(mock_envoy_modules, mock_man
 
         src.server.manager = mock_manager
         mock_manager.initialize = AsyncMock()
+        mock_manager.shutdown = AsyncMock()
         mock_manager.config = {}
         mock_manager.plugin_count = 0
 
