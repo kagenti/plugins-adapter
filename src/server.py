@@ -460,7 +460,7 @@ async def serve(host: str = "0.0.0.0", port: int = 50052):
     await server.start()
     # wait forever
     await server.wait_for_termination()
-
+    await manager.shutdown()
 
 # ============================================================================
 # MAIN ENTRY POINT
