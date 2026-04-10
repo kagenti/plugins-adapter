@@ -477,6 +477,7 @@ async def serve(host: str = "0.0.0.0", port: int = 50052):
 
     async def _shutdown():
         logger.info("SIGTERM received — draining in-flight streams (grace=15s)")
+        await manager.shutdown()
         health_servicer.set("", health_pb2.HealthCheckResponse.NOT_SERVING)
         await server.stop(grace=15)
 
