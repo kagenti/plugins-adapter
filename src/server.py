@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import signal
-from typing import AsyncIterator
+from typing import AsyncIterator, Optional
 
 import grpc
 
@@ -155,7 +155,7 @@ async def getToolPreInvokeResponse(body):
     return body_resp
 
 
-async def getToolPostInvokeResponse(body):
+async def getToolPostInvokeResponse(body, toolname: Optional[str] = None):
     """
     Handle tool post-invoke hook processing.
 
@@ -165,12 +165,17 @@ async def getToolPostInvokeResponse(body):
     Note: In STREAMED mode, blocking responses may fail if headers are already sent.
     This implementation uses immediate_response to attempt early termination, but
     it may not always succeed due to streaming constraints.
+
+    Args:
+        body: The response body containing the tool result
+        toolname: The mcp toolname in this session
     """
     # FIXME: size of content array is expected to be 1
     # for content in body["result"]["content"]:
 
     logger.debug("**** Tool Post Invoke ****")
-    payload = ToolPostInvokePayload(name="replaceme", result=body["result"])
+
+    payload = ToolPostInvokePayload(name=toolname, result=body["result"])
     # TODO: hard-coded ids
     logger.debug(f"**** Tool Post Invoke payload: {payload} ****")
     global_context = GlobalContext(request_id="1", server_id="2")
@@ -239,7 +244,7 @@ async def getPromptPreFetchResponse(body):
 # ============================================================================
 
 
-async def process_response_body_buffer(buffer: bytearray):
+async def process_response_body_buffer(buffer: bytearray, toolname: Optional[str] = None):
     """Process buffered response body content.
 
     Parses the buffered content (supporting both SSE and plain JSON-RPC formats),
@@ -247,6 +252,7 @@ async def process_response_body_buffer(buffer: bytearray):
 
     Args:
         buffer: The accumulated response body bytes
+        toolname: The mcp toolname in this session
 
     Returns:
         ProcessingResponse to send back to Envoy
@@ -297,7 +303,7 @@ async def process_response_body_buffer(buffer: bytearray):
         # Check if this is a tool result response
         if "result" in data and "content" in data["result"]:
             logger.info("Invoking tool post-invoke hook")
-            return await getToolPostInvokeResponse(data)
+            return await getToolPostInvokeResponse(data, toolname)
         else:
             return ep.ProcessingResponse(response_body=ep.BodyResponse(response=ep.CommonResponse()))
     else:
@@ -332,6 +338,7 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
         """
         req_body_buf = bytearray()
         resp_body_buf = bytearray()
+        current_tool_name = "changeme"  # Track tool name for response processing
 
         try:
             async for request in request_iterator:
@@ -395,6 +402,8 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         else:
                             logger.info(json.loads(text))
                             body = json.loads(text)
+                            if "params" in body and "name" in body["params"]:
+                                current_tool_name = body["params"]["name"]
                             if "method" in body and body["method"] == "tools/call":
                                 body_resp = await getToolPreInvokeResponse(body)
                             elif "method" in body and body["method"] == "prompts/get":
@@ -424,14 +433,13 @@ class ExtProcServicer(ep_grpc.ExternalProcessorServicer):
                         logger.debug("End of stream reached, processing complete buffered response")
 
                         # Process the buffered content
-                        body_resp = await process_response_body_buffer(resp_body_buf)
+                        body_resp = await process_response_body_buffer(resp_body_buf, current_tool_name)
                         yield body_resp
                         resp_body_buf.clear()
                     else:
                         # Intermediate chunk - acknowledge but don't process yet
                         logger.debug("Buffering intermediate chunk, waiting for end_of_stream")
                         yield ep.ProcessingResponse(response_body=ep.BodyResponse(response=ep.CommonResponse()))
-
                 else:
                     # Unhandled request types
                     logger.warning("Not processed")
