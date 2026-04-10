@@ -7,9 +7,7 @@ plugins:
     hooks: ["tool_pre_invoke", "tool_post_invoke"]
     mode: "sequential"  # enforce | permissive | disabled
     conditions:
-      - tools: []  # Scope to particular tools
-        server_ids: []
-        tenant_ids: []
+      - tools: ["test2_hello_world"]  # Scope to particular tools
     config:
       nemo_guardrails_url: "http://nemo-guardrails-service:8000"
       # Replace with model name guardrailed by NeMo, for logging

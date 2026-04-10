@@ -175,7 +175,8 @@ async def getToolPostInvokeResponse(body, toolname: Optional[str] = None):
 
     logger.debug("**** Tool Post Invoke ****")
 
-    payload = ToolPostInvokePayload(name=toolname, result=body["result"])
+    _toolname = toolname if toolname else "replaceme" 
+    payload = ToolPostInvokePayload(name=_toolname, result=body["result"])
     # TODO: hard-coded ids
     logger.debug(f"**** Tool Post Invoke payload: {payload} ****")
     global_context = GlobalContext(request_id="1", server_id="2")
