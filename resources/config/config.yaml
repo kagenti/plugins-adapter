@@ -4,7 +4,7 @@ plugins:
     kind: "plugins.examples.nemocheck.plugin.NemoCheck"
     description: "Adapter for nemo check server"
     version: "0.1.0"
-    hooks: ["tool_pre_invoke", "tool_post_invoke"]
+    hooks: ["tool_pre_invoke", "tool_post_invoke", "prompt_pre_fetch", "prompt_post_fetch"]
     mode: "sequential"  # enforce | permissive | disabled
     conditions:
       - tools: ["test2_hello_world"]  # Scope to particular tools
