@@ -8,7 +8,7 @@ dependencies = [
     "grpcio-tools>=1.80.0",
     "grpcio-health-checking>=1.80.0",
     "betterproto2==0.9.1",
-    "cpex==0.1.0.dev10",
+    "cpex==0.1.0.dev11",
 ]
 
 [dependency-groups]
