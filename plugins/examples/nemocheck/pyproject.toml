@@ -44,7 +44,7 @@ authors = [
 ]
 
 dependencies = [
-    "cpex==0.1.0.dev11",
+    "cpex==0.1.0.dev12",
     "mcp>=1.16.0",
     "requests>=2.33.1",
 ]
