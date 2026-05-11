@@ -17,7 +17,7 @@ proto = [
     "grpcio>=1.80.0",
     "grpcio-tools>=1.80.0",
     "betterproto2==0.9.1",
-    "betterproto2_compiler==0.9.0",
+    "betterproto2_compiler==0.10.0",
     "structlog==25.5.0",
 ]
 dev = [
